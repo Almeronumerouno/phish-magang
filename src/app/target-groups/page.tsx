@@ -33,10 +33,6 @@ export default function TargetGroupsPage() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [loadingTargets, setLoadingTargets] = useState(false);
 
-  useEffect(() => {
-    fetchGroups();
-  }, []);
-
   const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
@@ -51,6 +47,11 @@ export default function TargetGroupsPage() {
       setLoadingGroups(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchGroups();
+  }, []);
 
   const handleGroupClick = async (group: Group) => {
     setSelectedGroup(group);
