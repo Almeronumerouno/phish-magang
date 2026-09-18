@@ -39,6 +39,7 @@ export async function POST(req: Request) {
   if (!html.trim()) return NextResponse.json({ error: "HTML content is required." }, { status: 400 });
   const captureCredentials = body?.captureCredentials === true;
   const capturePasswords = captureCredentials && body?.capturePasswords === true;
+  const redirectUrl = typeof body?.redirectUrl === "string" ? body.redirectUrl.trim() : null;
   const page = await db.landingPage.create({
     data: {
       userId: session.userId,
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
       html,
       captureCredentials,
       capturePasswords,
+      redirectUrl,
       modifiedDate: new Date(),
     },
     select,
