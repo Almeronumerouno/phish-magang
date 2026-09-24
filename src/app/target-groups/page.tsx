@@ -33,6 +33,14 @@ export default function TargetGroupsPage() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [loadingTargets, setLoadingTargets] = useState(false);
 
+  // New state for the Quick Add Target form
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    department: "",
+  });
+
   const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
@@ -49,7 +57,6 @@ export default function TargetGroupsPage() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchGroups();
   }, []);
 
@@ -69,6 +76,45 @@ export default function TargetGroupsPage() {
       setTargets([]);
     } finally {
       setLoadingTargets(false);
+    }
+  };
+
+  // Handler for adding a new target to the database
+  const handleAddTarget = async () => {
+    if (!formData.email) {
+      alert("Email is required");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/targets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to save target");
+      }
+
+      const newEntry = await res.json();
+
+      // Refresh the groups list from the database
+      await fetchGroups();
+
+      // Automatically select the newly updated or created group to preview it
+      if (newEntry.group) {
+        handleGroupClick(newEntry.group);
+      }
+
+      // Reset form
+      setFormData({ firstName: "", lastName: "", email: "", department: "" });
+      setShowAddForm(false);
+    } catch (error) {
+      console.error("Error adding target:", error);
+      alert("Failed to add target to database.");
     }
   };
 
@@ -144,23 +190,32 @@ export default function TargetGroupsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <input
                   placeholder="First Name"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   className="px-3 py-2 text-sm border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-border"
                 />
                 <input
                   placeholder="Last Name"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   className="px-3 py-2 text-sm border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-border"
                 />
                 <input
                   placeholder="Email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="px-3 py-2 text-sm border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-border"
                 />
                 <input
                   placeholder="Department"
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   className="px-3 py-2 text-sm border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-border"
                 />
                 <button
                   type="button"
-                  className="col-span-1 sm:col-span-2 lg:col-span-1 px-4 py-2 bg-btn-primary text-btn-primary-text text-xs font-medium rounded-md hover:bg-gray-800 transition-colors cursor-pointer"
+                  onClick={handleAddTarget}
+                  className="col-span-1 sm:col-span-2 lg:col-span-1 px-4 py-2 bg-black text-white text-xs font-medium rounded-md hover:bg-gray-800 transition-colors cursor-pointer"
                 >
                   Add Target
                 </button>
@@ -189,7 +244,7 @@ export default function TargetGroupsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {loadingGroups ? (
+                  {loadingGroups && groups.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted">
                         Loading...
@@ -206,7 +261,9 @@ export default function TargetGroupsPage() {
                       <tr
                         key={group.id}
                         onClick={() => handleGroupClick(group)}
-                        className={`border-b border-border last:border-b-0 hover:bg-gray-50/50 transition-colors cursor-pointer ${selectedGroup?.id === group.id ? 'bg-gray-50' : ''}`}
+                        className={`border-b border-border last:border-b-0 hover:bg-gray-50/50 transition-colors cursor-pointer ${
+                          selectedGroup?.id === group.id ? "bg-gray-50" : ""
+                        }`}
                       >
                         <td className="px-4 sm:px-5 py-3 text-sm text-foreground font-medium whitespace-nowrap">
                           &gt; {group.name}
@@ -247,7 +304,9 @@ export default function TargetGroupsPage() {
           <div className="bg-card rounded-lg border border-border overflow-hidden">
             <div className="px-4 sm:px-5 py-3.5 border-b border-border flex justify-between items-center">
               <h3 className="text-xs sm:text-sm font-semibold text-foreground">
-                {selectedGroup ? `Group Members Preview: ${selectedGroup.name}` : "Group Members Preview"}
+                {selectedGroup
+                  ? `Group Members Preview: ${selectedGroup.name}`
+                  : "Group Members Preview"}
               </h3>
             </div>
             <div className="overflow-x-auto w-full">
@@ -278,7 +337,7 @@ export default function TargetGroupsPage() {
                         Select a group to view its members.
                       </td>
                     </tr>
-                  ) : loadingTargets ? (
+                  ) : loadingTargets && targets.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted">
                         Loading...
@@ -297,16 +356,16 @@ export default function TargetGroupsPage() {
                         className="border-b border-border last:border-b-0 hover:bg-gray-50/50 transition-colors"
                       >
                         <td className="px-4 sm:px-5 py-3 text-sm text-foreground font-medium whitespace-nowrap">
-                          {target.firstName || ''} {target.lastName || ''}
+                          {target.firstName || ""} {target.lastName || ""}
                         </td>
                         <td className="px-4 sm:px-5 py-3 text-sm text-blue-600 whitespace-nowrap">
                           {target.email}
                         </td>
                         <td className="px-4 sm:px-5 py-3 text-sm text-body whitespace-nowrap">
-                          {target.department || '-'}
+                          {target.department || "-"}
                         </td>
                         <td className="px-4 sm:px-5 py-3 text-sm text-body whitespace-nowrap">
-                          {target.position || '-'}
+                          {target.position || "-"}
                         </td>
                         <td className="px-4 sm:px-5 py-3 whitespace-nowrap">
                           <div className="flex gap-2">
@@ -338,4 +397,3 @@ export default function TargetGroupsPage() {
     </div>
   );
 }
-

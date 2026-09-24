@@ -8,23 +8,31 @@ git clone <repo-kamu>
 cd redteam-simulation
 ```
 
-2. Install dependencies:
+2. Make sure you are using Node.js 20.9.0 or newer. If you use nvm, run:
+```bash
+nvm install 20.9.0
+nvm use 20.9.0
+```
+
+3. Install dependencies:
 ```bash
 npm install
 ```
 
-3. Setup environment variables:
+4. Setup environment variables:
 ```bash
 copy .env.example .env
 ```
 
-4. Setup database:
+`SESSION_SECRET` is required for login and register to create the session cookie.
+
+5. Setup database:
 ```bash
 npm run db:migrate
 npm run db:seed
 ```
 
-5. Run the development server:
+6. Run the development server:
 ```bash
 npm run dev
 ```
