@@ -400,11 +400,9 @@ export default function TemplatesPage() {
                     className="w-4 h-4 cursor-pointer accent-teal-600 rounded"
                   />
                   <span>Capture Submitted Data</span>
-                  <HelpCircle
-                    size={14}
-                    className="text-muted"
-                    title="If the landing page contains a form, submitted input will be captured."
-                  />
+                  <span title="If the landing page contains a form, submitted input will be captured.">
+                    <HelpCircle size={14} className="text-muted" />
+                  </span>
                 </label>
 
                 {captureSubmitted && (
@@ -429,11 +427,9 @@ export default function TemplatesPage() {
               <div className="space-y-1.5 pt-1">
                 <label htmlFor="lp-redirect" className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                   <span>Redirect to:</span>
-                  <HelpCircle
-                    size={14}
-                    className="text-muted"
-                    title="Opsi ini mengalihkan user ke website asli setelah submit data"
-                  />
+                  <span title="Opsi ini mengalihkan user ke website asli setelah submit data">
+                    <HelpCircle size={14} className="text-muted" />
+                  </span>
                 </label>
                 <input
                   id="lp-redirect"

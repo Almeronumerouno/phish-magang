@@ -34,25 +34,52 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { name } = body;
-    
+    const { name, members } = body;
+
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
-    // Generate random id for SQLite since it's not autoincrement in this schema?
-    // Let's assume Prisma handles it if it's autoincrement, wait, the schema is `@id Int`, let me check if it's autoincrement. If not, I should generate it.
-    // Actually, I can just use a unique ID based on timestamp or something, or let DB handle it if it's autoincrement.
-    // Let's do a simple count or use a random integer.
-    const id = Math.floor(Math.random() * 1000000);
+    if (members !== undefined && !Array.isArray(members)) {
+      return NextResponse.json({ error: "Members must be an array" }, { status: 400 });
+    }
+
+    const rows: Array<{
+      firstName: string | null;
+      lastName: string | null;
+      email: string;
+      position: string | null;
+    }> = Array.isArray(members) ? members : [];
+
+    for (const m of rows) {
+      if (!m.email || typeof m.email !== "string") {
+        return NextResponse.json({ error: "Each member needs an email" }, { status: 400 });
+      }
+    }
 
     const group = await db.group.create({
       data: {
-        id,
         userId: session.userId,
         name,
         modifiedDate: new Date(),
+        ...(rows.length > 0
+          ? {
+              targets: {
+                create: rows.map((m) => ({
+                  target: {
+                    create: {
+                      firstName: m.firstName ?? null,
+                      lastName: m.lastName ?? null,
+                      email: m.email,
+                      position: m.position ?? null,
+                    },
+                  },
+                })),
+              },
+            }
+          : {}),
       },
+      include: { _count: { select: { targets: true } } },
     });
 
     return NextResponse.json(group);

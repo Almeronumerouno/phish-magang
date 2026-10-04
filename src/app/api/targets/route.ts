@@ -27,12 +27,10 @@ export async function POST(req: Request) {
       },
     });
 
-    // 2. If the group doesn't exist, create it (using your random ID generation method)
+    // 2. If the group doesn't exist, create it
     if (!group) {
-      const groupId = Math.floor(Math.random() * 1000000);
       group = await db.group.create({
         data: {
-          id: groupId,
           userId: session.userId,
           name: groupName,
           modifiedDate: new Date(),
@@ -41,10 +39,8 @@ export async function POST(req: Request) {
     }
 
     // 3. Create the target and link it to the group via GroupTarget
-    const targetId = Math.floor(Math.random() * 1000000);
     const target = await db.target.create({
       data: {
-        id: targetId,
         firstName: firstName || null,
         lastName: lastName || null,
         email: email,

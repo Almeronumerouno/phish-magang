@@ -151,8 +151,8 @@ export async function POST(req: Request) {
   // 3. Strip client-side SPA scripts and hydration bundles (Next.js/React/Vue/Webpack)
   // These scripts cause "Terjadi kesalahan pada sisi client" hydration crashes, anti-iframe busting,
   // and interfere with native form submission in phishing templates.
-  html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gis, "");
-  html = html.replace(/<noscript\b[^<]*(?:(?!<\/noscript>)<[^<]*)*<\/noscript>/gis, "");
+  html = html.replace(/<script\b[\s\S]*?<\/script>/gi, "");
+  html = html.replace(/<noscript\b[\s\S]*?<\/noscript>/gi, "");
 
   return NextResponse.json({
     html,
