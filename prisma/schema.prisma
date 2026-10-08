@@ -94,8 +94,19 @@ model SendingProfile {
   ignoreCertErrors Boolean    @default(false)
   user             User?      @relation(fields: [userId], references: [id])
   campaigns        Campaign[]
+  headers          Header[]
 
   @@map("smtp")
+}
+
+model Header {
+  id     Int             @id @default(autoincrement())
+  key    String
+  value  String
+  smtpId Int?            @map("smtp_id")
+  smtp   SendingProfile? @relation(fields: [smtpId], references: [id], onDelete: Cascade)
+
+  @@map("headers")
 }
 
 model Campaign {

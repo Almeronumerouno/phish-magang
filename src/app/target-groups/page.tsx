@@ -412,10 +412,10 @@ export default function TargetGroupsPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">
-                Users &amp; Groups
+                Targets
               </h1>
               <p className="text-xs text-muted">
-                Create and manage target groups for phishing simulations.
+                Kelola kelompok target dan daftar penerima simulasi phishing.
               </p>
             </div>
           </div>
@@ -500,14 +500,14 @@ export default function TargetGroupsPage() {
                 <tr>
                   <td colSpan={4} className="p-8 text-center">
                     <div className="p-4 bg-blue-50/60 border border-blue-200 text-blue-900 rounded-md max-w-md mx-auto text-xs">
-                      No groups created yet. Click <b>New Group</b> above to create one!
+                      Belum ada group yang dibuat. Klik <b>New Group</b> di atas untuk membuat group baru!
                     </div>
                   </td>
                 </tr>
               ) : filteredGroups.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 text-center text-muted">
-                    No groups matching &quot;{searchQuery}&quot;
+                    Tidak ada group yang cocok dengan &quot;{searchQuery}&quot;
                   </td>
                 </tr>
               ) : (
@@ -600,7 +600,7 @@ export default function TargetGroupsPage() {
                     {editingId ? "Edit Group" : "New Group"}
                   </h3>
                   <p className="text-[11px] text-muted">
-                    {editingId ? `Update settings and target recipients for this group` : "Configure recipient list and import members"}
+                    {editingId ? "Perbarui pengaturan dan anggota target untuk grup ini" : "Konfigurasi daftar target dan import anggota penerima"}
                   </p>
                 </div>
               </div>
@@ -777,13 +777,13 @@ export default function TargetGroupsPage() {
                       ) : targets.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="p-6 text-center text-muted">
-                            No targets added yet. Use the form above or bulk import via CSV.
+                            Belum ada target yang ditambahkan. Gunakan form di atas atau bulk import via CSV.
                           </td>
                         </tr>
                       ) : filteredModalTargets.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="p-6 text-center text-muted">
-                            No members matching &quot;{modalSearch}&quot;
+                            Tidak ada anggota yang cocok dengan &quot;{modalSearch}&quot;
                           </td>
                         </tr>
                       ) : (

@@ -175,20 +175,10 @@ export default function TemplatesPage() {
       if (data.redirectUrl) {
         setRedirectUrl(data.redirectUrl);
       }
-      if (!name.trim()) {
-        try {
-          const u = new URL(target);
-          const domain = u.hostname.replace(/^www\./, "");
-          const title = domain.split(".")[0];
-          setName(`${title.charAt(0).toUpperCase() + title.slice(1)} Login`);
-        } catch {
-          // ignore
-        }
-      }
       setImportOpen(false);
       setImportUrl("");
       setActiveTab("html");
-      setToast("Website berhasil di-clone persis seperti aslinya!");
+      setToast("Website berhasil di-import.");
     } catch (err) {
       setImportError(err instanceof Error ? err.message : "Gagal meng-clone website.");
     } finally {
@@ -198,7 +188,7 @@ export default function TemplatesPage() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setFormError("Page name is required.");
+      setFormError("Template name is required.");
       return;
     }
     if (!html.trim()) {
@@ -228,13 +218,13 @@ export default function TemplatesPage() {
               body: JSON.stringify(payload),
             });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error ?? "Gagal menyimpan halaman.");
+      if (!res.ok) throw new Error(data?.error ?? "Gagal menyimpan template.");
       setModalOpen(false);
       resetModal();
       await fetchPages();
-      setToast("Landing page tersimpan.");
+      setToast("Template tersimpan.");
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Gagal menyimpan halaman.");
+      setFormError(err instanceof Error ? err.message : "Gagal menyimpan template.");
     } finally {
       setSaving(false);
     }
@@ -244,11 +234,11 @@ export default function TemplatesPage() {
     if (!confirm(`Hapus "${page.name}"?`)) return;
     try {
       const res = await fetch(`/api/landing-pages/${page.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Gagal menghapus halaman.");
+      if (!res.ok) throw new Error("Gagal menghapus template.");
       await fetchPages();
-      setToast("Landing page dihapus.");
+      setToast("Template dihapus.");
     } catch {
-      setToast("Gagal menghapus halaman.");
+      setToast("Gagal menghapus template.");
     }
   };
 
@@ -258,10 +248,10 @@ export default function TemplatesPage() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-bold leading-tight sm:leading-[44px] tracking-tight text-foreground">
-            Landing Page
+            Templates
           </h1>
           <p className="text-xs sm:text-sm text-body">
-            Manage simulation recipients and organizational segments.
+            Kelola template landing page dan halaman login untuk simulasi phishing.
           </p>
         </div>
         <button
@@ -270,7 +260,7 @@ export default function TemplatesPage() {
           className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 text-xs font-medium rounded-md shadow-[0_1px_3px_rgba(15,23,42,0.08)] transition-all cursor-pointer w-full sm:w-auto bg-btn-primary text-btn-primary-text hover:bg-gray-800 active:scale-95"
         >
           <Plus size={12} strokeWidth={2.5} />
-          <span>New Page</span>
+          <span>New Template</span>
         </button>
       </div>
 
@@ -281,7 +271,7 @@ export default function TemplatesPage() {
             {/* Modal Header */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-card sticky top-0 z-10">
               <h2 className="text-xl font-bold text-foreground">
-                {editingId === null ? "New Landing Page" : "Edit Landing Page"}
+                {editingId === null ? "New Template" : "Edit Template"}
               </h2>
               <button
                 type="button"
@@ -309,7 +299,7 @@ export default function TemplatesPage() {
                 <input
                   id="lp-name"
                   type="text"
-                  placeholder="Page name"
+                  placeholder="Template name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3.5 py-2 border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-teal-500/40 text-sm"
@@ -457,7 +447,7 @@ export default function TemplatesPage() {
                 disabled={saving}
                 className="px-5 py-2.5 rounded-md bg-[#1ABB9C] hover:bg-[#16a085] text-white text-xs font-semibold uppercase tracking-wider transition-colors disabled:opacity-50 shadow-sm"
               >
-                {saving ? "Saving..." : "Save Page"}
+                {saving ? "Saving..." : "Save Template"}
               </button>
             </div>
           </div>
@@ -469,9 +459,8 @@ export default function TemplatesPage() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-150">
           <div className="bg-card border border-border rounded-xl text-foreground shadow-2xl w-full max-w-[500px] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center px-5 py-3.5 border-b border-border bg-card">
-              <h3 className="text-base font-bold flex items-center gap-2 text-foreground">
-                <Globe size={18} className="text-[#d9534f]" />
-                <span>Import Site</span>
+              <h3 className="text-base font-bold text-foreground">
+                Import Site
               </h3>
               <button
                 type="button"
@@ -479,6 +468,7 @@ export default function TemplatesPage() {
                   setImportOpen(false);
                   setImportError(null);
                 }}
+                aria-label="Close modal"
                 className="text-muted hover:text-foreground transition-colors p-1"
               >
                 <X size={18} />
@@ -486,14 +476,21 @@ export default function TemplatesPage() {
             </div>
 
             <div className="p-5 space-y-3.5">
+              {importError && (
+                <div className="p-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md">
+                  {importError}
+                </div>
+              )}
+
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted uppercase tracking-wider">
+                <label htmlFor="import-url" className="text-sm font-semibold text-foreground">
                   URL:
                 </label>
                 <input
-                  type="url"
+                  id="import-url"
+                  type="text"
                   autoFocus
-                  placeholder="https://shopee.co.id/buyer/login"
+                  placeholder="http://google.com"
                   value={importUrl}
                   onChange={(e) => setImportUrl(e.target.value)}
                   onKeyDown={(e) => {
@@ -502,19 +499,9 @@ export default function TemplatesPage() {
                       handleImport();
                     }
                   }}
-                  className="w-full px-3.5 py-2.5 border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-teal-500/40 text-sm font-mono"
+                  className="w-full px-3.5 py-2.5 border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-teal-500/40 text-sm"
                 />
               </div>
-
-              <p className="text-xs text-muted leading-relaxed">
-                Masukkan link website apapun (termasuk SPA modern seperti Shopee, BCA, dll). Sistem akan merender DOM dan menginjeksi base URL secara otomatis agar tampilannya persis.
-              </p>
-
-              {importError && (
-                <div className="p-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md">
-                  {importError}
-                </div>
-              )}
             </div>
 
             <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t border-border bg-gray-50/50">
@@ -536,7 +523,7 @@ export default function TemplatesPage() {
                 className="px-5 py-2 text-xs font-medium bg-btn-primary text-btn-primary-text rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm"
               >
                 {importing && <Loader2 size={14} className="animate-spin" />}
-                <span>{importing ? "Meng-clone..." : "Import"}</span>
+                <span>{importing ? "Importing..." : "Import"}</span>
               </button>
             </div>
           </div>
@@ -565,7 +552,7 @@ export default function TemplatesPage() {
 
       {!isLoading && !listError && pages.length === 0 && (
         <div className="flex items-center justify-center min-h-[350px]">
-          <p className="text-sm sm:text-base text-empty select-none">Halaman masih kosong</p>
+          <p className="text-sm sm:text-base text-empty select-none">Belum ada template yang dibuat</p>
         </div>
       )}
 
