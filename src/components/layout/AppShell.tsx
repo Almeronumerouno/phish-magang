@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 const PROTECTED_PREFIXES = [
   "/dashboard",
   "/campaigns",
+  "/email-templates",
   "/templates",
   "/target-groups",
   "/sending-profiles",
@@ -58,10 +59,6 @@ export function AppShell({ children }: AppShellProps) {
     }
   }, [ready, user, isAuthRoute, isProtectedRoute, router]);
 
-  if (!ready) {
-    return <AuthLoading />;
-  }
-
   if (isAuthRoute) {
     if (user) return <AuthLoading />;
     return (
@@ -71,7 +68,7 @@ export function AppShell({ children }: AppShellProps) {
     );
   }
 
-  if (isProtectedRoute && !user) {
+  if (ready && isProtectedRoute && !user) {
     return <AuthLoading />;
   }
 

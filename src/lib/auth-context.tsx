@@ -69,27 +69,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     clearLegacyStorage();
-    let cancelled = false;
     (async () => {
       try {
+        console.log("[AuthContext] fetching /api/auth/me...");
         const res = await fetch("/api/auth/me");
-        if (!cancelled) {
-          if (res.ok) {
-            const data = await res.json();
-            setUser({ username: data.username });
-          } else {
-            setUser(null);
-          }
+        console.log("[AuthContext] /api/auth/me status:", res.status);
+        if (res.ok) {
+          const data = await res.json();
+          console.log("[AuthContext] user data:", data);
+          setUser({ username: data.username });
+        } else {
+          setUser(null);
         }
-      } catch {
-        if (!cancelled) setUser(null);
+      } catch (err) {
+        console.error("[AuthContext] fetch error:", err);
+        setUser(null);
       } finally {
-        if (!cancelled) setReady(true);
+        console.log("[AuthContext] setReady(true)");
+        setReady(true);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {

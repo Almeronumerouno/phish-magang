@@ -689,7 +689,7 @@ export default function SendingProfilesPage() {
                     <div className="sm:col-span-5">
                       <input
                         type="text"
-                        placeholder="{{.URL}}-gophish"
+                        placeholder="{{.URL}}"
                         value={headerValueInput}
                         onChange={(e) => setHeaderValueInput(e.target.value)}
                         className="w-full px-2.5 py-1.5 border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs font-mono"

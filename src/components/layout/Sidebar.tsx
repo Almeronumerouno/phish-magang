@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Flag,
-  FileText,
+  Mail,
+  Globe,
   Users,
   Send,
   X,
@@ -21,7 +22,8 @@ interface SidebarProps {
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Campaigns", href: "/campaigns", icon: Flag },
-  { label: "Templates", href: "/templates", icon: FileText },
+  { label: "Email Templates", href: "/email-templates", icon: Mail },
+  { label: "Landing Pages", href: "/templates", icon: Globe },
   { label: "Targets", href: "/target-groups", icon: Users },
   { label: "Sending Profiles", href: "/sending-profiles", icon: Send },
 ];

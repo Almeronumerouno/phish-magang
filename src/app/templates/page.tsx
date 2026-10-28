@@ -248,10 +248,10 @@ export default function TemplatesPage() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-bold leading-tight sm:leading-[44px] tracking-tight text-foreground">
-            Templates
+            Landing Pages
           </h1>
           <p className="text-xs sm:text-sm text-body">
-            Kelola template landing page dan halaman login untuk simulasi phishing.
+            Kelola template landing page dan website credential harvesting.
           </p>
         </div>
         <button

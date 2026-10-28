@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     await transporter.sendMail({
       from: fromAddress,
       to: recipientName ? `"${recipientName}" <${toEmail}>` : toEmail,
-      subject: "Default Email from Gophish",
+      subject: "Test Email - Red Team Simulation",
       text: textBody,
       headers: customHeaders,
     });

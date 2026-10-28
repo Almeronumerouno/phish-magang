@@ -1,0 +1,79 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import { createHmac } from "node:crypto";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const ROOT_DIR = path.resolve(__dirname, "..");
+const require = createRequire(import.meta.url);
+
+const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:3000";
+const SESSION_SECRET =
+  process.env.SESSION_SECRET ||
+  "04942c68cc80d9cfd52870a58726e4909bdbe9427ceafdc0540a3f703cce76c6";
+
+const browserPath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+const playwrightPath = "C:\\Users\\almer\\AppData\\Roaming\\npm\\node_modules\\openclaw\\node_modules\\playwright-core";
+
+const { chromium } = require(playwrightPath);
+
+async function main() {
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath: browserPath,
+  });
+  const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+
+  const expiry = Date.now() + 7 * 24 * 60 * 60 * 1000;
+  const payload = `1.${expiry}`;
+  const sig = createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
+  const token = `${payload}.${sig}`;
+
+  await context.addCookies([
+    { name: "rts_session", value: token, domain: "127.0.0.1", path: "/" },
+    { name: "rts_session", value: token, domain: "localhost", path: "/" },
+  ]);
+
+  const page = await context.newPage();
+  await page.goto(`${BASE_URL}/email-templates`, { waitUntil: "networkidle" });
+  await page.locator("button:has-text('New Template')").click();
+  await page.waitForSelector("#template-subject");
+
+  console.log("--- Testing Subject Sync ---");
+  const start = Date.now();
+  await page.locator("#template-subject").fill("Test Subject Immediate");
+  for (let i = 0; i < 15; i++) {
+    await page.waitForTimeout(50);
+    const txt = (await page.locator("h3.text-xl.font-semibold").textContent())?.trim();
+    console.log(`[Subject] After ${Date.now() - start}ms: "${txt}"`);
+    if (txt === "Test Subject Immediate") break;
+  }
+
+  console.log("--- Testing Plaintext in iframe ---");
+  await page.locator("button:has-text('TEXT')").click();
+  const textStart = Date.now();
+  await page.locator("textarea[placeholder*='Plaintext']").fill("Hello from Plaintext Test");
+  const iframe = page.frameLocator("iframe[title='Gmail Live Preview Canvas']");
+  for (let i = 0; i < 15; i++) {
+    await page.waitForTimeout(50);
+    const bodyText = (await iframe.locator("body").innerText())?.trim();
+    console.log(`[Iframe Plaintext] After ${Date.now() - textStart}ms: "${bodyText}"`);
+    if (bodyText === "Hello from Plaintext Test") break;
+  }
+
+  console.log("--- Testing Envelope Sender Sync ---");
+  const senderStart = Date.now();
+  await page.locator("#template-envelope-sender").fill("IT Support<support@itdesk.local>");
+  for (let i = 0; i < 15; i++) {
+    await page.waitForTimeout(50);
+    const name = (await page.locator("div.flex.items-baseline span.font-bold").textContent())?.trim();
+    console.log(`[Sender Name] After ${Date.now() - senderStart}ms: "${name}"`);
+    if (name === "IT Support") break;
+  }
+
+  await browser.close();
+}
+
+main().catch(console.error);
