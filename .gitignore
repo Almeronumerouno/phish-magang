@@ -46,3 +46,9 @@ prisma/dev.db*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# test & verification artifacts
+/verification/
+/test-results/
+/.agents/
+src/tunnel-state.json

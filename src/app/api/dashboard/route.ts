@@ -25,11 +25,11 @@ export async function GET(req: Request) {
       },
     });
 
-    // Emails opened (Opened, Clicked, Submitted)
+    // Emails opened (Opened, Email Opened, Clicked, Clicked Link, Submitted, Submitted Data)
     const emailsOpened = await db.result.count({
       where: {
         userId: session.userId,
-        status: { in: ["Opened", "Clicked", "Submitted"] },
+        status: { in: ["Opened", "Email Opened", "Clicked", "Clicked Link", "Submitted", "Submitted Data"] },
       },
     });
 
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     const clicks = await db.result.count({
       where: {
         userId: session.userId,
-        status: { in: ["Clicked", "Submitted"] },
+        status: { in: ["Clicked", "Clicked Link", "Submitted", "Submitted Data"] },
       },
     });
 
@@ -68,9 +68,10 @@ export async function GET(req: Request) {
       let clicked = 0;
 
       for (const r of c.results) {
-        if (r.status !== "Scheduled") sent++;
-        if (["Opened", "Clicked", "Submitted"].includes(r.status)) opened++;
-        if (["Clicked", "Submitted"].includes(r.status)) clicked++;
+        const s = (r.status || "").toLowerCase();
+        if (s !== "scheduled") sent++;
+        if (s.includes("open") || s.includes("click") || s.includes("submit")) opened++;
+        if (s.includes("click") || s.includes("submit")) clicked++;
       }
 
       return {

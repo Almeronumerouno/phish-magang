@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import {
   Plus,
-  Download,
   Calendar,
-  ChevronDown,
   Search,
-  MoreHorizontal,
   ChevronLeft,
   ChevronRight,
   Send,
@@ -16,283 +14,512 @@ import {
   KeyRound,
   X,
   Radio,
-  Shield,
   Trash2,
   Play,
   Pause,
   AlertTriangle,
   Sparkles,
+  CheckCircle2,
+  Eye,
+  Flag,
+  Globe,
+  Mail,
+  Users,
+  RefreshCw,
+  ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 
-interface CampaignRow {
-  id: string;
+interface CampaignItem {
+  id: number;
   name: string;
-  date: string;
-  recipients: string;
-  opens: string;
-  clicks: string;
-  clickPercentage: number;
-  riskLevel: "High" | "Medium" | "Low";
-  status?: "Active" | "Paused" | "Completed" | "Scheduled";
+  createdDate: string;
+  launchDate: string | null;
+  completedDate: string | null;
+  status: string;
+  url: string | null;
+  template?: { id: number; name: string; subject: string | null };
+  page?: { id: number; name: string };
+  profile?: { id: number; name: string; fromAddress: string | null };
+  group?: { id: number; name: string; _count?: { targets: number } };
+  results?: any[];
+  stats?: {
+    total: number;
+    sent: number;
+    opened: number;
+    clicked: number;
+    submitted: number;
+    reported: number;
+    openRate: number;
+    clickRate: number;
+    submitRate: number;
+  };
 }
 
-const initialCampaigns: CampaignRow[] = [
-  {
-    id: "cmp-1",
-    name: "Q3 Urgent Update: Payroll",
-    date: "2023-10-12",
-    recipients: "1,240",
-    opens: "845 (68%)",
-    clicks: "312 (25%)",
-    clickPercentage: 25,
-    riskLevel: "High",
-    status: "Active",
-  },
-  {
-    id: "cmp-2",
-    name: "Mandatory IT Policy Review",
-    date: "2023-09-28",
-    recipients: "2,100",
-    opens: "1,050 (50%)",
-    clicks: "252 (12%)",
-    clickPercentage: 12,
-    riskLevel: "Medium",
-    status: "Active",
-  },
-  {
-    id: "cmp-3",
-    name: "Benefits Enrollment Reminder",
-    date: "2023-09-15",
-    recipients: "1,450",
-    opens: "2,890 (82%)",
-    clicks: "104 (5%)",
-    clickPercentage: 5,
-    riskLevel: "Low",
-    status: "Completed",
-  },
-  {
-    id: "cmp-4",
-    name: "CEO Q4 Strategy Update",
-    date: "2023-08-30",
-    recipients: "4,000",
-    opens: "3,600 (90%)",
-    clicks: "840 (21%)",
-    clickPercentage: 21,
-    riskLevel: "High",
-    status: "Completed",
-  },
-  {
-    id: "cmp-5",
-    name: "New O365 Login Portal",
-    date: "2023-08-12",
-    recipients: "850",
-    opens: "620 (73%)",
-    clicks: "110 (13%)",
-    clickPercentage: 13,
-    riskLevel: "Medium",
-    status: "Completed",
-  },
-];
+interface DependencyItem {
+  id: number;
+  name: string;
+  subject?: string | null;
+  fromAddress?: string | null;
+  from_address?: string | null;
+  _count?: { targets: number };
+}
+
+interface NetworkPreset {
+  id: string;
+  label: string;
+  url: string;
+  description: string;
+  isRecommended: boolean;
+}
+
+interface NetworkInfo {
+  lanIp: string;
+  listenerPort: number;
+  isListenerActive: boolean;
+  presets: NetworkPreset[];
+}
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<CampaignRow[]>(initialCampaigns);
+  const [campaigns, setCampaigns] = useState<CampaignItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const [dateRange, setDateRange] = useState("Last 30 Days");
+  const pageSize = 8;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Modal Form State
+  // Dynamic Dependencies for Form
+  const [templates, setTemplates] = useState<DependencyItem[]>([]);
+  const [landingPages, setLandingPages] = useState<DependencyItem[]>([]);
+  const [sendingProfiles, setSendingProfiles] = useState<DependencyItem[]>([]);
+  const [targetGroups, setTargetGroups] = useState<DependencyItem[]>([]);
+  const [dependenciesLoaded, setDependenciesLoaded] = useState(false);
+  const [networkInfo, setNetworkInfo] = useState<NetworkInfo | null>(null);
+
+  // Form State
   const [formData, setFormData] = useState({
     name: "",
-    template: "Corporate Login (Microsoft 365)",
-    targetGroup: "Elevated & C-Suite",
-    recipients: 1240,
-    sendingProfile: "AWS SES East",
+    templateId: "",
+    pageId: "",
+    smtpId: "",
+    groupId: "",
+    url: "http://127.0.0.1:8080",
     dispatchTiming: "immediate" as "immediate" | "scheduled",
-    scheduleDate: "2024-08-15T09:00",
-    riskLevel: "High" as "High" | "Medium" | "Low",
+    launchDate: "",
+    sendByDate: "",
   });
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [networkMode, setNetworkMode] = useState<"same_wifi" | "different_wifi">("same_wifi");
+  const [tunnelInfo, setTunnelInfo] = useState<{ active: boolean; url: string | null } | null>(null);
+  const [checkingTunnel, setCheckingTunnel] = useState(false);
+
+  const checkTunnelStatus = async () => {
+    setCheckingTunnel(true);
+    try {
+      const res = await fetch("/api/system/tunnel");
+      if (res.ok) {
+        const data = await res.json();
+        setTunnelInfo(data);
+        if (data.active && data.url) {
+          return data.url;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to check tunnel", e);
+    } finally {
+      setCheckingTunnel(false);
+    }
+    return null;
+  };
+
+  // Template Preview Sub-modal State
+  const [previewTemplate, setPreviewTemplate] = useState<any | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  useEffect(() => {
-    async function fetchCampaigns() {
-      try {
-        const res = await fetch("/api/campaigns");
-        if (res.ok) {
-          const data = await res.json();
-          const mapped = data.map((cmp: any) => {
-            const recipients = cmp._count?.results || 0;
-            const opens = cmp.results?.filter((r: any) => ["Opened", "Clicked", "Submitted"].includes(r.status)).length || 0;
-            const clicks = cmp.results?.filter((r: any) => ["Clicked", "Submitted"].includes(r.status)).length || 0;
-            const clickPercentage = recipients > 0 ? Math.round((clicks / recipients) * 100) : 0;
-            const openPercentage = recipients > 0 ? Math.round((opens / recipients) * 100) : 0;
-            
-            return {
-              id: String(cmp.id),
-              name: cmp.name,
-              date: new Date(cmp.createdDate).toISOString().split("T")[0],
-              recipients: recipients.toLocaleString(),
-              opens: `${opens} (${openPercentage}%)`,
-              clicks: `${clicks} (${clickPercentage}%)`,
-              clickPercentage,
-              riskLevel: clickPercentage > 20 ? "High" : clickPercentage > 10 ? "Medium" : "Low",
-              status: cmp.status,
-            };
-          });
-          setCampaigns([...mapped, ...initialCampaigns]);
-        }
-      } catch (err) {
-        console.error("Failed to fetch campaigns", err);
+  // Fetch real campaigns from API
+  const fetchCampaigns = async () => {
+    try {
+      const res = await fetch("/api/campaigns");
+      if (res.ok) {
+        const data = await res.json();
+        setCampaigns(data);
       }
+    } catch (err) {
+      console.error("Failed to fetch campaigns", err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Fetch dependencies for New Campaign form
+  const fetchDependencies = async () => {
+    try {
+      const [tmplRes, pageRes, smtpRes, grpRes, netRes] = await Promise.all([
+        fetch("/api/email-templates"),
+        fetch("/api/landing-pages"),
+        fetch("/api/sending-profiles"),
+        fetch("/api/groups"),
+        fetch("/api/system/network"),
+      ]);
+
+      if (tmplRes.ok) {
+        const tmpls = await tmplRes.json();
+        setTemplates(tmpls);
+      }
+      if (pageRes.ok) {
+        const pgs = await pageRes.json();
+        setLandingPages(pgs);
+      } else {
+        // Fallback to /api/pages if /api/landing-pages has issues
+        const altPageRes = await fetch("/api/pages");
+        if (altPageRes.ok) setLandingPages(await altPageRes.json());
+      }
+      if (smtpRes.ok) {
+        const smtps = await smtpRes.json();
+        setSendingProfiles(smtps);
+      }
+      if (grpRes.ok) {
+        const grps = await grpRes.json();
+        setTargetGroups(grps);
+      }
+      if (netRes.ok) {
+        const netData: NetworkInfo = await netRes.json();
+        setNetworkInfo(netData);
+      }
+      setDependenciesLoaded(true);
+    } catch (e) {
+      console.error("Failed to load campaign dependencies", e);
+    }
+  };
+
+  useEffect(() => {
     fetchCampaigns();
   }, []);
 
+  const handleOpenModal = async () => {
+    if (!dependenciesLoaded) {
+      await fetchDependencies();
+    }
+
+    let defaultUrl = "http://127.0.0.1:8080";
+    try {
+      const netRes = await fetch("/api/system/network");
+      if (netRes.ok) {
+        const netData: NetworkInfo = await netRes.json();
+        setNetworkInfo(netData);
+        const rec = netData.presets.find((p) => p.isRecommended);
+        if (rec) defaultUrl = rec.url;
+      }
+    } catch {}
+
+    // Check tunnel status upon opening modal
+    checkTunnelStatus();
+
+    // Set default values if dependencies exist
+    setFormData((prev) => ({
+      ...prev,
+      templateId: templates[0]?.id ? String(templates[0].id) : prev.templateId,
+      pageId: landingPages[0]?.id ? String(landingPages[0].id) : prev.pageId,
+      smtpId: sendingProfiles[0]?.id ? String(sendingProfiles[0].id) : prev.smtpId,
+      groupId: targetGroups[0]?.id ? String(targetGroups[0].id) : prev.groupId,
+      url: prev.url && prev.url !== "http://localhost:3000" && prev.url !== "http://127.0.0.1:8080" ? prev.url : defaultUrl,
+    }));
+    setFormError(null);
+    setIsModalOpen(true);
+  };
+
+  // Open Template Preview Modal
+  const handleOpenTemplatePreview = async (templateId: string) => {
+    if (!templateId) return;
+    setPreviewLoading(true);
+    try {
+      const res = await fetch(`/api/email-templates/${templateId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPreviewTemplate(data);
+      } else {
+        showToast("Failed to load template preview.");
+      }
+    } catch {
+      showToast("Error retrieving template preview.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const handleLaunchCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) return;
+    setFormError(null);
 
-    const newCmp = {
+    if (!formData.name.trim()) {
+      setFormError("Campaign Name is required.");
+      return;
+    }
+    if (!formData.templateId) {
+      setFormError("Please select an Email Template.");
+      return;
+    }
+    if (!formData.pageId) {
+      setFormError("Please select a Landing Page.");
+      return;
+    }
+    if (!formData.smtpId) {
+      setFormError("Please select a Sending Profile.");
+      return;
+    }
+    if (!formData.groupId) {
+      setFormError("Please select a Target Group.");
+      return;
+    }
+    if (!formData.url.trim() || !formData.url.startsWith("http")) {
+      setFormError("A valid HTTP or HTTPS Phishing URL is required.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    const payload = {
       name: formData.name.trim(),
-      status: formData.dispatchTiming === "immediate" ? "Active" : "Scheduled",
-      templateId: 1, // mapping mock to DB
-      groupId: 1, // mapping mock to DB
-      smtpId: 1, // mapping mock to DB
+      templateId: parseInt(formData.templateId),
+      pageId: parseInt(formData.pageId),
+      smtpId: parseInt(formData.smtpId),
+      groupId: parseInt(formData.groupId),
+      url: formData.url.trim(),
+      launchDate:
+        formData.dispatchTiming === "scheduled" && formData.launchDate
+          ? new Date(formData.launchDate).toISOString()
+          : new Date().toISOString(),
+      sendByDate: formData.sendByDate
+        ? new Date(formData.sendByDate).toISOString()
+        : null,
     };
 
     try {
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newCmp)
+        body: JSON.stringify(payload),
       });
+
       if (res.ok) {
-        const cmp = await res.json();
-        const added: CampaignRow = {
-          id: String(cmp.id),
-          name: cmp.name,
-          date: new Date(cmp.createdDate || Date.now()).toISOString().split("T")[0],
-          recipients: "0",
-          opens: "0 (0%)",
-          clicks: "0 (0%)",
-          clickPercentage: 0,
-          riskLevel: "Low",
-          status: cmp.status,
-        };
-        setCampaigns((prev) => [added, ...prev]);
-        showToast(`Campaign "${cmp.name}" launched successfully!`);
+        const created = await res.json();
+        showToast(`Campaign "${created.name}" launched successfully!`);
+        setIsModalOpen(false);
+        setFormData({
+          name: "",
+          templateId: "",
+          pageId: "",
+          smtpId: "",
+          groupId: "",
+          url: networkInfo?.presets.find((p) => p.isRecommended)?.url || "http://127.0.0.1:8080",
+          dispatchTiming: "immediate",
+          launchDate: "",
+          sendByDate: "",
+        });
+        fetchCampaigns();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setFormError(err.error || "Failed to create campaign.");
       }
     } catch (e) {
       console.error(e);
-      showToast("Error launching campaign");
+      setFormError("Network error while launching campaign.");
+    } finally {
+      setSubmitting(false);
     }
-
-    setIsModalOpen(false);
-    setFormData({
-      name: "",
-      template: "Corporate Login (Microsoft 365)",
-      targetGroup: "Elevated & C-Suite",
-      recipients: 1240,
-      sendingProfile: "AWS SES East",
-      dispatchTiming: "immediate",
-      scheduleDate: "2024-08-15T09:00",
-      riskLevel: "High",
-    });
   };
 
-  const handleDeleteCampaign = async (id: string, name: string) => {
-    if (confirm(`Delete campaign "${name}"?`)) {
-      if (!id.startsWith("cmp-")) {
-        try {
-          await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
-        } catch (e) {
-          console.error(e);
+  const handleDeleteCampaign = async (id: number, name: string) => {
+    if (confirm(`Permanently delete campaign "${name}"?`)) {
+      try {
+        const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          setCampaigns((prev) => prev.filter((c) => c.id !== id));
+          showToast(`Campaign "${name}" deleted.`);
+        } else {
+          showToast("Failed to delete campaign.");
+        }
+      } catch {
+        showToast("Network error deleting campaign.");
+      }
+    }
+  };
+
+  const handleToggleStatus = async (cmp: CampaignItem) => {
+    const isCompleted = cmp.status === "Completed";
+    const nextStatus =
+      cmp.status === "Active" || cmp.status === "In_Progress"
+        ? "Paused"
+        : cmp.status === "Paused"
+        ? "Active"
+        : "Completed";
+
+    if (isCompleted) {
+      showToast("Completed campaigns cannot be resumed.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/campaigns/${cmp.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (res.ok) {
+        showToast(`Campaign "${cmp.name}" is now ${nextStatus}.`);
+        fetchCampaigns();
+      } else {
+        showToast("Failed to update campaign status.");
+      }
+    } catch {
+      showToast("Error updating status.");
+    }
+  };
+
+  const handleCompleteCampaign = async (cmp: CampaignItem) => {
+    if (!confirm(`Mark campaign "${cmp.name}" as Completed?`)) return;
+    try {
+      const res = await fetch(`/api/campaigns/${cmp.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Completed" }),
+      });
+      if (res.ok) {
+        showToast(`Campaign "${cmp.name}" marked as Completed.`);
+        fetchCampaigns();
+      }
+    } catch {
+      showToast("Error completing campaign.");
+    }
+  };
+
+  // Aggregate Metrics derived from real database campaigns
+  const aggregateMetrics = useMemo(() => {
+    const totalCampaigns = campaigns.length;
+    let totalSent = 0;
+    let totalOpened = 0;
+    let totalClicked = 0;
+    let totalSubmitted = 0;
+    let totalReported = 0;
+
+    for (const c of campaigns) {
+      if (c.stats) {
+        totalSent += c.stats.sent;
+        totalOpened += c.stats.opened;
+        totalClicked += c.stats.clicked;
+        totalSubmitted += c.stats.submitted;
+        totalReported += c.stats.reported;
+      } else if (c.results) {
+        for (const r of c.results) {
+          const s = (r.status || "").toLowerCase();
+          if (s !== "scheduled") totalSent++;
+          if (s.includes("open") || s.includes("click") || s.includes("submit")) totalOpened++;
+          if (s.includes("click") || s.includes("submit")) totalClicked++;
+          if (s.includes("submit")) totalSubmitted++;
+          if (r.reported) totalReported++;
         }
       }
-      setCampaigns((prev) => prev.filter((c) => c.id !== id));
-      showToast(`Campaign "${name}" removed.`);
-    }
-  };
-
-  const togglePauseResume = async (id: string) => {
-    const cmp = campaigns.find((c) => c.id === id);
-    if (!cmp) return;
-    
-    const newStatus = cmp.status === "Active" ? "Paused" : "Active";
-    
-    if (!id.startsWith("cmp-")) {
-      try {
-        await fetch(`/api/campaigns/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: newStatus }),
-        });
-      } catch (e) {
-        console.error(e);
-      }
     }
 
-    setCampaigns((prev) =>
-      prev.map((c) => {
-        if (c.id !== id) return c;
-        showToast(
-          `Campaign "${c.name}" is now ${
-            newStatus === "Paused" ? "paused" : "active"
-          }.`
-        );
-        return { ...c, status: newStatus };
-      })
+    const openRate = totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) : "0.0";
+    const clickRate = totalSent > 0 ? ((totalClicked / totalSent) * 100).toFixed(1) : "0.0";
+    const submitRate = totalSent > 0 ? ((totalSubmitted / totalSent) * 100).toFixed(1) : "0.0";
+    const reportRate = totalSent > 0 ? ((totalReported / totalSent) * 100).toFixed(1) : "0.0";
+
+    return {
+      totalCampaigns,
+      totalSent,
+      totalOpened,
+      totalClicked,
+      totalSubmitted,
+      totalReported,
+      openRate,
+      clickRate,
+      submitRate,
+      reportRate,
+    };
+  }, [campaigns]);
+
+  // Filtered rows for Campaign table
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter((row) => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        q === "" ||
+        row.name.toLowerCase().includes(q) ||
+        (row.template?.name && row.template.name.toLowerCase().includes(q)) ||
+        (row.group?.name && row.group.name.toLowerCase().includes(q)) ||
+        row.createdDate.includes(q);
+
+      const s = (row.status || "").toLowerCase();
+      let matchesStatus = true;
+      if (statusFilter === "Active") matchesStatus = s.includes("active") || s.includes("progress");
+      else if (statusFilter === "Completed") matchesStatus = s.includes("complete");
+      else if (statusFilter === "Scheduled") matchesStatus = s.includes("sched");
+      else if (statusFilter === "Paused") matchesStatus = s.includes("pause");
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [campaigns, searchQuery, statusFilter]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filteredCampaigns.length / pageSize));
+  const paginatedCampaigns = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredCampaigns.slice(start, start + pageSize);
+  }, [filteredCampaigns, currentPage, pageSize]);
+
+  const getStatusBadge = (status: string) => {
+    const s = (status || "").toLowerCase();
+    if (s.includes("complete")) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          Completed
+        </span>
+      );
+    }
+    if (s.includes("progress") || s.includes("active")) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+          In Progress
+        </span>
+      );
+    }
+    if (s.includes("sched")) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          Scheduled
+        </span>
+      );
+    }
+    if (s.includes("pause")) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-300">
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+          Paused
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
+        {status}
+      </span>
     );
   };
 
-  const filteredRows = campaigns.filter(
-    (row) =>
-      row.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      row.date.includes(searchQuery) ||
-      row.riskLevel.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const getRiskBadge = (level: "High" | "Medium" | "Low") => {
-    switch (level) {
-      case "High":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600 border border-red-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-            High
-          </span>
-        );
-      case "Medium":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-            Medium
-          </span>
-        );
-      case "Low":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            Low
-          </span>
-        );
-    }
-  };
-
-  const departments = [
-    { name: "Eng", height: 52 },
-    { name: "HR", height: 66 },
-    { name: "Sales", height: 38 },
-    { name: "Finance", height: 76 },
-    { name: "Exec", height: 32 },
-  ];
-
   return (
-    <div className="space-y-6 max-w-[1440px] pb-8">
+    <div className="space-y-6 max-w-[1440px] pb-10">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-foreground text-white px-4 py-3 rounded-lg shadow-xl text-xs sm:text-sm font-medium flex items-center gap-2.5 border border-white/10 animate-in fade-in slide-in-from-bottom-3">
@@ -308,7 +535,7 @@ export default function CampaignsPage() {
             Campaigns
           </h1>
           <p className="text-xs sm:text-sm text-body">
-            Analyze campaign performance and organizational security posture.
+            Manage red team simulation lifecycles, schedule dispatches, and track real-time telemetry.
           </p>
         </div>
 
@@ -317,59 +544,42 @@ export default function CampaignsPage() {
           {/* New Campaign Button */}
           <button
             type="button"
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenModal}
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 bg-btn-primary text-btn-primary-text text-xs font-medium rounded-md shadow-xs hover:bg-gray-800 transition-colors cursor-pointer"
           >
             <Plus size={14} strokeWidth={2.5} />
             <span>New Campaign</span>
           </button>
 
-          {/* Export PDF Button */}
+          {/* Refresh Data Button */}
           <button
             type="button"
-            onClick={() => showToast("Exporting security posture PDF...")}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 bg-card border border-border text-xs font-medium text-foreground rounded-md shadow-xs hover:bg-gray-50 transition-colors cursor-pointer"
+            onClick={fetchCampaigns}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-card border border-border text-xs font-medium text-foreground rounded-md shadow-xs hover:bg-gray-50 transition-colors cursor-pointer"
+            title="Refresh campaigns"
           >
-            <Download size={14} className="text-body" />
-            <span>Export PDF</span>
-          </button>
-
-          {/* Date Range Filter Button */}
-          <button
-            type="button"
-            onClick={() => {
-              const ranges = ["Last 30 Days", "Last 90 Days", "Year to Date", "All Time"];
-              const nextIndex = (ranges.indexOf(dateRange) + 1) % ranges.length;
-              setDateRange(ranges[nextIndex]);
-            }}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 bg-card border border-border text-xs font-medium text-foreground rounded-md shadow-xs hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <Calendar size={14} className="text-body" />
-            <span>Filter: {dateRange}</span>
-            <ChevronDown size={14} className="text-muted" />
+            <RefreshCw size={13} className="text-muted" />
+            <span>Refresh</span>
           </button>
         </div>
       </div>
 
-      {/* ===================== 4 STAT CARDS (FIGMA SPEC) ===================== */}
+      {/* ===================== 4 REAL TELEMETRY STAT CARDS ===================== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Campaigns Run */}
         <div className="bg-card rounded-lg border border-border p-5 flex flex-col justify-between shadow-xs">
           <div className="flex items-start justify-between">
-            <span className="text-xs text-muted font-medium">
-              Total Campaigns Run
-            </span>
+            <span className="text-xs text-muted font-medium">Total Campaigns Run</span>
             <div className="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Send size={14} />
+              <Radio size={14} />
             </div>
           </div>
           <div className="mt-3">
             <span className="text-3xl font-bold text-foreground tracking-tight">
-              {142 + (campaigns.length - initialCampaigns.length)}
+              {aggregateMetrics.totalCampaigns}
             </span>
-            <p className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1">
-              <span>↗</span>
-              <span>+12.4% vs last month</span>
+            <p className="text-xs font-medium text-zinc-500 mt-1 flex items-center gap-1">
+              <span>{aggregateMetrics.totalSent} total emails dispatched</span>
             </p>
           </div>
         </div>
@@ -377,20 +587,17 @@ export default function CampaignsPage() {
         {/* Card 2: Overall Open Rate */}
         <div className="bg-card rounded-lg border border-border p-5 flex flex-col justify-between shadow-xs">
           <div className="flex items-start justify-between">
-            <span className="text-xs text-muted font-medium">
-              Overall Open Rate
-            </span>
-            <div className="w-7 h-7 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center">
+            <span className="text-xs text-muted font-medium">Overall Open Rate</span>
+            <div className="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
               <Lock size={14} />
             </div>
           </div>
           <div className="mt-3">
             <span className="text-3xl font-bold text-foreground tracking-tight">
-              48.2%
+              {aggregateMetrics.openRate}%
             </span>
-            <p className="text-xs font-medium text-red-500 mt-1 flex items-center gap-1">
-              <span>↗</span>
-              <span>+4.1% vs last month</span>
+            <p className="text-xs font-medium text-blue-600 mt-1 flex items-center gap-1">
+              <span>{aggregateMetrics.totalOpened} opened out of {aggregateMetrics.totalSent}</span>
             </p>
           </div>
         </div>
@@ -398,20 +605,17 @@ export default function CampaignsPage() {
         {/* Card 3: Overall Click Rate */}
         <div className="bg-card rounded-lg border border-border p-5 flex flex-col justify-between shadow-xs">
           <div className="flex items-start justify-between">
-            <span className="text-xs text-muted font-medium">
-              Overall Click Rate
-            </span>
-            <div className="w-7 h-7 rounded-md bg-red-50 text-red-600 flex items-center justify-center">
+            <span className="text-xs text-muted font-medium">Overall Click Rate</span>
+            <div className="w-7 h-7 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center">
               <MousePointerClick size={14} />
             </div>
           </div>
           <div className="mt-3">
             <span className="text-3xl font-bold text-foreground tracking-tight">
-              22.7%
+              {aggregateMetrics.clickRate}%
             </span>
-            <p className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1">
-              <span>↘</span>
-              <span>-1.5% vs last month</span>
+            <p className="text-xs font-medium text-amber-600 mt-1 flex items-center gap-1">
+              <span>{aggregateMetrics.totalClicked} clicked simulation link</span>
             </p>
           </div>
         </div>
@@ -419,165 +623,53 @@ export default function CampaignsPage() {
         {/* Card 4: Cred Submission Rate */}
         <div className="bg-card rounded-lg border border-border p-5 flex flex-col justify-between shadow-xs">
           <div className="flex items-start justify-between">
-            <span className="text-xs text-muted font-medium">
-              Cred Submission Rate
-            </span>
-            <div className="w-7 h-7 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center">
+            <span className="text-xs text-muted font-medium">Cred Submission Rate</span>
+            <div className="w-7 h-7 rounded-md bg-red-50 text-red-600 flex items-center justify-center">
               <KeyRound size={14} />
             </div>
           </div>
           <div className="mt-3">
             <span className="text-3xl font-bold text-foreground tracking-tight">
-              8.3%
+              {aggregateMetrics.submitRate}%
             </span>
-            <p className="text-xs font-medium text-emerald-600 mt-1 flex items-center gap-1">
-              <span>↘</span>
-              <span>-0.7% vs last month</span>
+            <p className="text-xs font-medium text-red-600 mt-1 flex items-center gap-1">
+              <span>{aggregateMetrics.totalSubmitted} compromised credentials</span>
             </p>
           </div>
         </div>
       </div>
 
-      {/* ===================== CHARTS ROW ===================== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Chart: Campaign Success by Department */}
-        <div className="bg-card rounded-lg border border-border p-5 flex flex-col justify-between shadow-xs">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground">
-              Campaign Success by Department
-            </h3>
-            <button
-              type="button"
-              className="text-muted hover:text-foreground p-1 rounded hover:bg-gray-100 transition-colors"
-              aria-label="Options"
-            >
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
-
-          {/* Bar Chart Container with Y-Axis */}
-          <div className="relative pt-2">
-            {/* Horizontal Dashed Gridlines */}
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-8 pl-8 pr-2">
-              {[100, 75, 50, 25, 0].map((val) => (
-                <div key={val} className="w-full flex items-center gap-2">
-                  <span className="text-[10px] text-muted w-6 text-right">
-                    {val}
-                  </span>
-                  <div className="flex-1 border-b border-dashed border-gray-200" />
-                </div>
-              ))}
-            </div>
-
-            {/* Solid Dark Bars */}
-            <div className="relative pl-10 pr-2 h-[200px] flex items-end justify-between gap-3 pb-8">
-              {departments.map((dept) => (
-                <div
-                  key={dept.name}
-                  className="flex-1 flex flex-col items-center justify-end h-full group"
-                >
-                  <div
-                    className="w-full bg-[#111827] group-hover:bg-[#1f293d] transition-all rounded-t-xs relative cursor-pointer"
-                    style={{ height: `${dept.height}%` }}
-                  >
-                    {/* Tooltip */}
-                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none whitespace-nowrap z-10">
-                      {dept.height}% Success
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* X-Axis Labels */}
-            <div className="pl-10 pr-2 flex justify-between gap-3 text-center -mt-6">
-              {departments.map((dept) => (
-                <div
-                  key={dept.name}
-                  className="flex-1 text-xs text-muted font-medium"
-                >
-                  {dept.name}
-                </div>
-              ))}
-            </div>
+      {/* ===================== CAMPAIGN STATUS SUMMARY BAR ===================== */}
+      <div className="bg-card rounded-lg border border-border p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-muted uppercase tracking-wider">Campaign Filter:</span>
+          <div className="flex items-center gap-1">
+            {["All", "Active", "Completed", "Scheduled", "Paused"].map((st) => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(st);
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                  statusFilter === st
+                    ? "bg-foreground text-white"
+                    : "text-body hover:bg-gray-100"
+                }`}
+              >
+                {st}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Right Chart: Reporting Rate vs Click Rate */}
-        <div className="bg-card rounded-lg border border-border p-5 flex flex-col justify-between shadow-xs">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h3 className="text-sm font-semibold text-foreground">
-              Reporting Rate vs Click Rate
-            </h3>
-            {/* Legend */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span className="text-xs text-muted font-medium">Reporting</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                <span className="text-xs text-muted font-medium">Clicked</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Spline Line Graphic */}
-          <div className="relative pt-2">
-            {/* Horizontal Guide lines */}
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-8 pr-2">
-              {[0, 1, 2, 3].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-full border-b border-dashed border-gray-200"
-                />
-              ))}
-            </div>
-
-            {/* SVG Splines with Dots matching Figma exact curves */}
-            <div className="relative h-[200px] w-full pb-8">
-              <svg
-                className="w-full h-full"
-                viewBox="0 0 500 160"
-                preserveAspectRatio="none"
-              >
-                {/* Green Line: Reporting */}
-                <path
-                  d="M 10 90 C 70 88, 140 100, 200 80 C 260 60, 310 10, 370 25 C 410 35, 450 145, 490 60"
-                  fill="none"
-                  stroke="#059669"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                />
-
-                {/* Red Line: Clicked */}
-                <path
-                  d="M 10 135 C 70 120, 150 110, 230 115 C 310 120, 390 100, 430 70 C 460 45, 480 75, 490 90"
-                  fill="none"
-                  stroke="#EF4444"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                />
-
-                {/* Scatter Dots on Graphic matching screenshot */}
-                <circle cx="270" cy="50" r="3.5" fill="#059669" />
-                <circle cx="430" cy="80" r="3.5" fill="#059669" />
-                <circle cx="490" cy="45" r="3.5" fill="#059669" />
-
-                <circle cx="240" cy="115" r="3.5" fill="#EF4444" />
-                <circle cx="440" cy="90" r="3.5" fill="#EF4444" />
-                <circle cx="490" cy="80" r="3.5" fill="#EF4444" />
-              </svg>
-            </div>
-
-            {/* X-Axis Quarters */}
-            <div className="flex justify-between text-xs text-muted font-medium px-4 -mt-6">
-              <span>Q1</span>
-              <span>Q2</span>
-              <span>Q3</span>
-              <span>Q4</span>
-            </div>
-          </div>
+        <div className="flex items-center gap-3 text-xs text-muted">
+          <span>Total: <strong className="text-foreground">{campaigns.length}</strong></span>
+          <span>•</span>
+          <span>Active: <strong className="text-amber-600">{campaigns.filter((c) => c.status === "Active" || c.status === "In_Progress").length}</strong></span>
+          <span>•</span>
+          <span>Completed: <strong className="text-emerald-600">{campaigns.filter((c) => c.status === "Completed").length}</strong></span>
         </div>
       </div>
 
@@ -585,19 +677,28 @@ export default function CampaignsPage() {
       <div className="bg-card rounded-lg border border-border overflow-hidden shadow-xs">
         {/* Table Header: Title + Search Input */}
         <div className="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold text-foreground">
-            Detailed Campaign Results
-          </h2>
-          <div className="relative w-full sm:w-56">
+          <div className="space-y-0.5">
+            <h2 className="text-sm font-semibold text-foreground">
+              Simulation Campaigns ({filteredCampaigns.length})
+            </h2>
+            <p className="text-xs text-muted">
+              Live campaign audit log with authentic database-backed telemetry.
+            </p>
+          </div>
+
+          <div className="relative w-full sm:w-64">
             <Search
               size={15}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
             />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="Search campaigns, templates, groups..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full h-[34px] pl-8 pr-3 rounded-md bg-input-bg border border-border text-xs text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-foreground"
             />
           </div>
@@ -605,14 +706,17 @@ export default function CampaignsPage() {
 
         {/* Data Table */}
         <div className="overflow-x-auto w-full">
-          <table className="w-full min-w-[780px]">
+          <table className="w-full min-w-[850px]">
             <thead>
               <tr className="border-b border-border bg-gray-50/50">
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
                   Campaign Name
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                  Date
+                  Template & Audience
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
+                  Created Date
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
                   Recipients
@@ -624,7 +728,7 @@ export default function CampaignsPage() {
                   Clicks
                 </th>
                 <th className="px-5 py-3 text-center text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                  Risk Level
+                  Status
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
                   Actions
@@ -632,77 +736,135 @@ export default function CampaignsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredRows.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="px-5 py-10 text-center text-sm text-empty"
-                  >
-                    No campaign results match your search.
+                  <td colSpan={8} className="px-5 py-12 text-center text-xs text-muted">
+                    <div className="inline-block w-5 h-5 border-2 border-border border-t-foreground rounded-full animate-spin mr-2" />
+                    Loading campaigns...
+                  </td>
+                </tr>
+              ) : paginatedCampaigns.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-xs text-empty">
+                    {searchQuery || statusFilter !== "All"
+                      ? "No campaigns match your search or filter."
+                      : "Belum ada kampanye simulasi. Klik \"New Campaign\" untuk membuat yang pertama!"}
                   </td>
                 </tr>
               ) : (
-                filteredRows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-border last:border-b-0 hover:bg-gray-50/50 transition-colors"
-                  >
-                    <td className="px-5 py-3.5 text-sm text-foreground font-medium whitespace-nowrap">
-                      {row.name}
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-body whitespace-nowrap">
-                      {row.date}
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-body text-right whitespace-nowrap">
-                      {row.recipients}
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-body text-right whitespace-nowrap">
-                      {row.opens}
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-right whitespace-nowrap">
-                      <span
-                        className={
-                          row.clickPercentage > 20
-                            ? "text-red-500 font-medium"
-                            : row.clickPercentage > 10
-                            ? "text-amber-600 font-medium"
-                            : "text-emerald-600 font-medium"
-                        }
-                      >
-                        {row.clicks}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-center whitespace-nowrap">
-                      {getRiskBadge(row.riskLevel)}
-                    </td>
-                    <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-2">
-                        {row.status && (
+                paginatedCampaigns.map((row) => {
+                  const recipients = row.stats?.total ?? row.results?.length ?? 0;
+                  const opens = row.stats?.opened ?? 0;
+                  const openRate = row.stats?.openRate ?? 0;
+                  const clicks = row.stats?.clicked ?? 0;
+                  const clickRate = row.stats?.clickRate ?? 0;
+
+                  return (
+                    <tr
+                      key={row.id}
+                      className="border-b border-border last:border-b-0 hover:bg-gray-50/50 transition-colors"
+                    >
+                      <td className="px-5 py-3.5 text-xs whitespace-nowrap">
+                        <Link
+                          href={`/campaigns/${row.id}`}
+                          className="font-semibold text-foreground hover:text-blue-600 hover:underline transition-colors block"
+                        >
+                          {row.name}
+                        </Link>
+                        {row.url && (
+                          <span className="text-[10px] text-muted font-mono truncate max-w-[200px] block">
+                            {row.url}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-body whitespace-nowrap">
+                        <div className="font-medium text-foreground truncate max-w-[200px]">
+                          {row.template?.name || "No Template"}
+                        </div>
+                        <div className="text-[11px] text-muted truncate max-w-[200px]">
+                          Target: {row.group?.name || "No Group"}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-muted whitespace-nowrap">
+                        {new Date(row.createdDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-body text-right font-medium whitespace-nowrap">
+                        {recipients}
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-body text-right whitespace-nowrap">
+                        <span className="font-semibold text-foreground">{opens}</span>{" "}
+                        <span className="text-muted text-[11px]">({openRate}%)</span>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-right whitespace-nowrap">
+                        <span
+                          className={`font-semibold ${
+                            clickRate > 20
+                              ? "text-red-500"
+                              : clickRate > 10
+                              ? "text-amber-600"
+                              : "text-emerald-600"
+                          }`}
+                        >
+                          {clicks}
+                        </span>{" "}
+                        <span className="text-muted text-[11px]">({clickRate}%)</span>
+                      </td>
+                      <td className="px-5 py-3.5 text-center whitespace-nowrap">
+                        {getStatusBadge(row.status)}
+                      </td>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* View Detail Link */}
+                          <Link
+                            href={`/campaigns/${row.id}`}
+                            className="p-1.5 hover:bg-gray-100 rounded text-muted hover:text-foreground transition-colors"
+                            title="View Campaign Details & Telemetry"
+                          >
+                            <Eye size={14} />
+                          </Link>
+
+                          {/* Complete Campaign */}
+                          {row.status !== "Completed" && (
+                            <button
+                              type="button"
+                              onClick={() => handleCompleteCampaign(row)}
+                              className="p-1.5 hover:bg-emerald-50 rounded text-muted hover:text-emerald-600 cursor-pointer transition-colors"
+                              title="Mark as Completed"
+                            >
+                              <Flag size={14} />
+                            </button>
+                          )}
+
+                          {/* Pause / Resume */}
+                          {row.status !== "Completed" && row.status !== "Scheduled" && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(row)}
+                              className="p-1.5 hover:bg-gray-100 rounded text-muted hover:text-foreground cursor-pointer transition-colors"
+                              title={row.status === "Active" || row.status === "In_Progress" ? "Pause Campaign" : "Resume Campaign"}
+                            >
+                              {row.status === "Active" || row.status === "In_Progress" ? (
+                                <Pause size={14} />
+                              ) : (
+                                <Play size={14} className="text-green-600" />
+                              )}
+                            </button>
+                          )}
+
+                          {/* Delete */}
                           <button
                             type="button"
-                            onClick={() => togglePauseResume(row.id)}
-                            className="p-1 hover:bg-gray-100 rounded text-muted hover:text-foreground cursor-pointer transition-colors"
-                            title={row.status === "Active" ? "Pause" : "Resume"}
+                            onClick={() => handleDeleteCampaign(row.id, row.name)}
+                            className="p-1.5 hover:bg-red-50 rounded text-muted hover:text-red-600 cursor-pointer transition-colors"
+                            title="Delete Campaign"
                           >
-                            {row.status === "Active" ? (
-                              <Pause size={13} />
-                            ) : (
-                              <Play size={13} className="text-green-600" />
-                            )}
+                            <Trash2 size={14} />
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteCampaign(row.id, row.name)}
-                          className="p-1 hover:bg-red-50 rounded text-muted hover:text-red-600 cursor-pointer transition-colors"
-                          title="Delete Campaign"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -710,7 +872,10 @@ export default function CampaignsPage() {
 
         {/* Table Footer: Pagination & Counts */}
         <div className="px-5 py-3.5 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-muted">
-          <span>Showing 1 to 5 of 182 entries</span>
+          <span>
+            Showing {filteredCampaigns.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{" "}
+            {Math.min(currentPage * pageSize, filteredCampaigns.length)} of {filteredCampaigns.length} campaigns
+          </span>
 
           <div className="flex items-center gap-1 self-end sm:self-auto">
             <button
@@ -722,7 +887,7 @@ export default function CampaignsPage() {
               <ChevronLeft size={16} />
             </button>
 
-            {[1, 2, 3].map((page) => (
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
                 key={page}
                 type="button"
@@ -737,24 +902,10 @@ export default function CampaignsPage() {
               </button>
             ))}
 
-            <span className="px-1 text-muted">...</span>
-
             <button
               type="button"
-              onClick={() => setCurrentPage(7)}
-              className={`w-7 h-7 rounded text-xs font-medium cursor-pointer transition-colors ${
-                currentPage === 7
-                  ? "bg-foreground text-white"
-                  : "text-body hover:bg-gray-100"
-              }`}
-            >
-              7
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage((p) => Math.min(7, p + 1))}
-              disabled={currentPage === 7}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
               className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
             >
               <ChevronRight size={16} />
@@ -763,10 +914,11 @@ export default function CampaignsPage() {
         </div>
       </div>
 
-      {/* ===================== MODAL: LAUNCH NEW SIMULATION ===================== */}
+      {/* ===================== MODAL: NEW CAMPAIGN (GOPHISH WORKFLOW) ===================== */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-[580px] max-h-[90vh] overflow-y-auto p-5 sm:p-7 space-y-5">
+          <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-[620px] max-h-[92vh] overflow-y-auto p-5 sm:p-7 space-y-5">
+            {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-border pb-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -774,11 +926,11 @@ export default function CampaignsPage() {
                     <Radio size={15} />
                   </div>
                   <h2 className="text-lg sm:text-xl font-bold text-foreground">
-                    Launch New Simulation
+                    New Campaign
                   </h2>
                 </div>
                 <p className="text-xs text-body">
-                  Configure and schedule a controlled red team phishing campaign.
+                  Configure simulation targets, email lures, cloned landing pages, and dispatch parameters.
                 </p>
               </div>
               <button
@@ -790,7 +942,16 @@ export default function CampaignsPage() {
               </button>
             </div>
 
+            {/* Error Banner */}
+            {formError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-xs flex items-center gap-2 animate-in fade-in">
+                <AlertTriangle size={15} className="shrink-0 text-red-500" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleLaunchCampaign} className="space-y-4">
+              {/* Campaign Name */}
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
                   Campaign Name <span className="text-red-500">*</span>
@@ -800,125 +961,365 @@ export default function CampaignsPage() {
                   required
                   placeholder="e.g. Q4 Executive Security Awareness Assessment"
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3.5 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">
-                    Landing Page Template
+              {/* Email Template Selection + Preview Button */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-foreground">
+                    Email Template <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={formData.template}
-                    onChange={(e) =>
-                      setFormData({ ...formData, template: e.target.value })
-                    }
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
-                  >
-                    <option value="Corporate Login (Microsoft 365)">
-                      Corporate Login (Microsoft 365)
+                  {formData.templateId && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenTemplatePreview(formData.templateId)}
+                      className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
+                    >
+                      <Eye size={12} />
+                      <span>Preview Selected Template</span>
+                    </button>
+                  )}
+                </div>
+                <select
+                  required
+                  value={formData.templateId}
+                  onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
+                  className="w-full px-3 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                >
+                  <option value="">Select an Email Template...</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} {t.subject ? `— (${t.subject})` : ""}
                     </option>
-                    <option value="Banking Portal (Chase)">
-                      Banking Portal (Chase)
+                  ))}
+                </select>
+                {templates.length === 0 && (
+                  <p className="text-[11px] text-amber-600 mt-1">
+                    No templates found. Create one first under <Link href="/email-templates" className="underline">Email Templates</Link>.
+                  </p>
+                )}
+              </div>
+
+              {/* Landing Page */}
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1">
+                  Landing Page <span className="text-red-500">*</span>
+                </label>
+                <select
+                  required
+                  value={formData.pageId}
+                  onChange={(e) => setFormData({ ...formData, pageId: e.target.value })}
+                  className="w-full px-3 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                >
+                  <option value="">Select a Landing Page...</option>
+                  {landingPages.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
                     </option>
-                    <option value="HR Dashboard (Workday)">
-                      HR Dashboard (Workday)
-                    </option>
-                    <option value="Generic Webmail">Generic Webmail</option>
-                  </select>
+                  ))}
+                </select>
+              </div>
+
+              {/* URL Field with 2 Network Reachability Modes */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-foreground">
+                    URL <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[11px] text-muted font-medium">Jangkauan Target:</span>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-foreground mb-1">
-                    Target Group
-                  </label>
-                  <select
-                    value={formData.targetGroup}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const counts: Record<string, number> = {
-                        "Elevated & C-Suite": 1240,
-                        "IT & Digital Operations": 2100,
-                        "Finance & Accounting": 1450,
-                        "All Employees": 4000,
-                      };
-                      setFormData({
-                        ...formData,
-                        targetGroup: val,
-                        recipients: counts[val] || 1000,
-                      });
+                {/* 2-Option Selector */}
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNetworkMode("same_wifi");
+                      const ip = networkInfo?.lanIp || "192.168.18.148";
+                      const port = networkInfo?.listenerPort || 8080;
+                      setFormData((prev) => ({
+                        ...prev,
+                        url: `http://${ip}:${port}`,
+                      }));
                     }}
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+                    className={`flex flex-col items-start p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                      networkMode === "same_wifi"
+                        ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
+                        : "border-border bg-white hover:bg-zinc-50 text-foreground"
+                    }`}
                   >
-                    <option value="Elevated & C-Suite">
-                      Elevated & C-Suite (1,240 targets)
-                    </option>
-                    <option value="IT & Digital Operations">
-                      IT & Digital Operations (2,100 targets)
-                    </option>
-                    <option value="Finance & Accounting">
-                      Finance & Accounting (1,450 targets)
-                    </option>
-                    <option value="All Employees">
-                      All Employees (4,000 targets)
-                    </option>
-                  </select>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          networkMode === "same_wifi" ? "bg-emerald-400" : "bg-emerald-500"
+                        }`}
+                      />
+                      <span>1. Wi-Fi yang Sama</span>
+                    </div>
+                    <span
+                      className={`text-[10px] mt-0.5 ${
+                        networkMode === "same_wifi" ? "text-zinc-300" : "text-muted"
+                      }`}
+                    >
+                      Target di jaringan Wi-Fi/LAN lokal
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setNetworkMode("different_wifi");
+                      const activeUrl = await checkTunnelStatus();
+                      if (activeUrl) {
+                        setFormData((prev) => ({ ...prev, url: activeUrl }));
+                      } else {
+                        if (
+                          formData.url.includes("192.168") ||
+                          formData.url.includes("127.0.0.1") ||
+                          formData.url.includes("localhost")
+                        ) {
+                          setFormData((prev) => ({ ...prev, url: "" }));
+                        }
+                      }
+                    }}
+                    className={`flex flex-col items-start p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                      networkMode === "different_wifi"
+                        ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
+                        : "border-border bg-white hover:bg-zinc-50 text-foreground"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-xs font-semibold">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          networkMode === "different_wifi" ? "bg-sky-400" : "bg-sky-500"
+                        }`}
+                      />
+                      <span>2. Beda Wi-Fi / Bebas</span>
+                    </div>
+                    <span
+                      className={`text-[10px] mt-0.5 ${
+                        networkMode === "different_wifi" ? "text-zinc-300" : "text-muted"
+                      }`}
+                    >
+                      Target di kuota HP 4G/5G / luar
+                    </span>
+                  </button>
                 </div>
+
+                {/* URL Input: Locked for both Option 1 (LAN) and Option 2 (Tunnel) */}
+                {networkMode === "same_wifi" ? (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      readOnly
+                      value={formData.url || `http://${networkInfo?.lanIp || "192.168.18.148"}:${networkInfo?.listenerPort || 8080}`}
+                      className="w-full pl-8 pr-8 py-2 text-xs sm:text-sm border border-border rounded-md bg-zinc-100 text-foreground font-mono focus:outline-none cursor-not-allowed select-all"
+                    />
+                    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted">
+                      <Lock size={13} />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/system/network");
+                          if (res.ok) {
+                            const data = await res.json();
+                            setNetworkInfo(data);
+                            const ip = data.lanIp || "192.168.18.148";
+                            const port = data.listenerPort || 8080;
+                            setFormData((prev) => ({ ...prev, url: `http://${ip}:${port}` }));
+                            showToast("IP LAN diperbarui");
+                          }
+                        } catch {
+                          showToast("Gagal memperbarui IP");
+                        }
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground cursor-pointer"
+                      title="Refresh IP LAN"
+                    >
+                      <RefreshCw size={13} />
+                    </button>
+                  </div>
+                ) : tunnelInfo?.active && tunnelInfo.url ? (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      readOnly
+                      value={tunnelInfo.url}
+                      className="w-full pl-8 pr-8 py-2 text-xs sm:text-sm border border-border rounded-md bg-zinc-100 text-foreground font-mono focus:outline-none cursor-not-allowed select-all"
+                    />
+                    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted">
+                      <Lock size={13} />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const u = await checkTunnelStatus();
+                        if (u) showToast("Tunnel URL disinkronkan");
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground cursor-pointer"
+                      title="Refresh status tunnel"
+                    >
+                      <RefreshCw size={13} />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="https://your-tunnel.loca.lt"
+                      value={formData.url}
+                      onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                      className="w-full px-3.5 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground font-mono"
+                    />
+                    <div className="mt-2 p-2.5 rounded-md bg-zinc-50 border border-zinc-200 text-[11px] text-zinc-700 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-foreground">
+                          Bisa diakses korban dari mana saja (kuota 4G/5G, Wi-Fi kafe/rumah).
+                        </p>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const activeUrl = await checkTunnelStatus();
+                            if (activeUrl) {
+                              setFormData((prev) => ({ ...prev, url: activeUrl }));
+                              showToast(`Tunnel aktif terdeteksi: ${activeUrl}`);
+                            } else {
+                              showToast("Tunnel belum aktif. Jalankan perintah di bawah.");
+                            }
+                          }}
+                          disabled={checkingTunnel}
+                          className="text-[10px] text-blue-600 hover:text-blue-800 font-medium underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        >
+                          <RefreshCw size={11} className={checkingTunnel ? "animate-spin" : ""} />
+                          <span>{checkingTunnel ? "Mengecek..." : "Cek Tunnel Aktif"}</span>
+                        </button>
+                      </div>
+                      <p className="text-muted leading-relaxed">
+                        Jalankan perintah ini di terminal untuk auto-lock URL:
+                      </p>
+                      <div className="bg-white border border-border px-2.5 py-1.5 rounded font-mono text-[11px] text-zinc-800 select-all flex items-center justify-between">
+                        <code>npx localtunnel --port 8080</code>
+                        <span className="text-[10px] text-muted">atau: npm run tunnel</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* Sending Profile & Target Group */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
-                    Risk Level Profile
+                    Sending Profile (SMTP) <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={formData.riskLevel}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        riskLevel: e.target.value as "High" | "Medium" | "Low",
-                      })
-                    }
+                    required
+                    value={formData.smtpId}
+                    onChange={(e) => setFormData({ ...formData, smtpId: e.target.value })}
                     className="w-full px-3 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                   >
-                    <option value="High">High (Spearphishing / C-Suite)</option>
-                    <option value="Medium">Medium (General Corporate)</option>
-                    <option value="Low">Low (Basic Awareness)</option>
+                    <option value="">Select Sending Profile...</option>
+                    {sendingProfiles.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} {s.from_address || s.fromAddress ? `(${s.from_address || s.fromAddress})` : ""}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-foreground mb-1">
-                    SMTP Sending Relay
+                    Target Group <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={formData.sendingProfile}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        sendingProfile: e.target.value,
-                      })
-                    }
+                    required
+                    value={formData.groupId}
+                    onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
                     className="w-full px-3 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                   >
-                    <option value="AWS SES East">AWS SES East</option>
-                    <option value="Default Mailer">Default Mailer (587)</option>
-                    <option value="Internal Relay">Internal Relay</option>
+                    <option value="">Select Target Group...</option>
+                    {targetGroups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name} ({g._count?.targets ?? 0} targets)
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
+              {/* Dispatch Timing */}
+              <div className="space-y-2 pt-2 border-t border-border">
+                <label className="block text-xs font-semibold text-foreground">
+                  Dispatch Schedule
+                </label>
+                <div className="flex items-center gap-4 text-xs">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="dispatchTiming"
+                      value="immediate"
+                      checked={formData.dispatchTiming === "immediate"}
+                      onChange={() => setFormData({ ...formData, dispatchTiming: "immediate" })}
+                    />
+                    <span>Launch Immediately</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="dispatchTiming"
+                      value="scheduled"
+                      checked={formData.dispatchTiming === "scheduled"}
+                      onChange={() => setFormData({ ...formData, dispatchTiming: "scheduled" })}
+                    />
+                    <span>Schedule for Later</span>
+                  </label>
+                </div>
+
+                {formData.dispatchTiming === "scheduled" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div>
+                      <label className="block text-[11px] font-medium text-muted mb-1">
+                        Launch Date & Time
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={formData.launchDate}
+                        onChange={(e) => setFormData({ ...formData, launchDate: e.target.value })}
+                        className="w-full px-2.5 py-1.5 text-xs border border-border rounded bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-muted mb-1">
+                        Send Emails By (Optional)
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={formData.sendByDate}
+                        onChange={(e) => setFormData({ ...formData, sendByDate: e.target.value })}
+                        className="w-full px-2.5 py-1.5 text-xs border border-border rounded bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Operational Security Notice */}
               <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-3 text-[11px] leading-relaxed">
                 <AlertTriangle size={15} className="shrink-0 text-amber-600 mt-0.5" />
                 <span>
-                  No employee credentials are stored in persistent storage. All events are logged strictly for educational assessment telemetry.
+                  This simulation creates active recipient tracking tokens (<code className="font-mono bg-white/70 px-1 rounded">rId</code>) for all targets in the chosen group. Dispatches are strictly for authorized training.
                 </span>
               </div>
 
+              {/* Modal Footer Actions */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-border">
                 <button
                   type="button"
@@ -929,12 +1330,72 @@ export default function CampaignsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-btn-primary text-btn-primary-text text-xs font-medium rounded-md hover:bg-gray-800 transition-all shadow-sm cursor-pointer"
+                  disabled={submitting}
+                  className="px-5 py-2 bg-btn-primary text-btn-primary-text text-xs font-medium rounded-md hover:bg-gray-800 transition-all shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  Launch Simulation
+                  {submitting ? "Launching..." : "Launch Campaign"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== TEMPLATE PREVIEW SUB-MODAL ===================== */}
+      {previewTemplate && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-card rounded-xl border border-border shadow-2xl w-full max-w-[700px] max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">
+                  Template Preview: {previewTemplate.name}
+                </h3>
+                <p className="text-xs text-muted">
+                  Subject: <strong className="text-foreground">{previewTemplate.subject || "(no subject)"}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewTemplate(null)}
+                className="p-1 rounded text-muted hover:text-foreground hover:bg-gray-100"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-3 bg-gray-50 border-b border-border text-xs flex items-center justify-between">
+              <span className="text-muted">
+                From: <strong className="text-foreground">{previewTemplate.envelopeSender || previewTemplate.envelope_sender || "Not specified"}</strong>
+              </span>
+              <span className="text-muted text-[11px]">
+                Attachments: {previewTemplate.attachments?.length ?? 0}
+              </span>
+            </div>
+
+            <div className="flex-1 p-4 overflow-y-auto bg-white min-h-[300px]">
+              {previewTemplate.html ? (
+                <iframe
+                  title="Template HTML Preview"
+                  srcDoc={previewTemplate.html}
+                  className="w-full h-[320px] border border-border rounded bg-white"
+                  sandbox="allow-same-origin"
+                />
+              ) : (
+                <pre className="p-4 bg-gray-50 border border-border rounded text-xs font-mono whitespace-pre-wrap text-foreground">
+                  {previewTemplate.text || "(empty body)"}
+                </pre>
+              )}
+            </div>
+
+            <div className="p-3 border-t border-border flex justify-end bg-gray-50">
+              <button
+                type="button"
+                onClick={() => setPreviewTemplate(null)}
+                className="px-4 py-1.5 text-xs font-medium bg-foreground text-white rounded hover:bg-gray-800"
+              >
+                Close Preview
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -54,16 +54,28 @@ model GroupTarget {
 }
 
 model Template {
-  id             Int       @id @default(autoincrement())
+  id             Int          @id @default(autoincrement())
   userId         Int?
   name           String
   subject        String?
   text           String?
   html           String?
-  modifiedDate   DateTime  @default(now())
+  modifiedDate   DateTime     @default(now())
   envelopeSender String?
-  user           User?     @relation(fields: [userId], references: [id])
+  user           User?        @relation(fields: [userId], references: [id])
   campaigns      Campaign[]
+  attachments    Attachment[]
+}
+
+model Attachment {
+  id         Int      @id @default(autoincrement())
+  templateId Int      @map("template_id")
+  name       String
+  content    String   // Base64 payload without data URI scheme
+  type       String   // MIME type
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
 }
 
 model LandingPage {
