@@ -131,18 +131,18 @@ export async function POST(req: Request) {
   const rawUrl = typeof body?.url === "string" ? body.url.trim() : "";
 
   if (!rawUrl) {
-    return NextResponse.json({ error: "No URL Specified!" }, { status: 400 });
+    return NextResponse.json({ error: "URL website belum ditentukan!" }, { status: 400 });
   }
 
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
   } catch {
-    return NextResponse.json({ error: "Enter a valid http(s) URL." }, { status: 400 });
+    return NextResponse.json({ error: "Masukkan format URL http(s) yang valid." }, { status: 400 });
   }
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return NextResponse.json({ error: "Enter a valid http(s) URL." }, { status: 400 });
+    return NextResponse.json({ error: "Masukkan format URL http(s) yang valid." }, { status: 400 });
   }
 
   try {

@@ -33,7 +33,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const displayName = user ? getEmailPrefix(user.username) : "Operator";
-  const displayEmail = user?.username ?? "Not signed in";
+  const displayEmail = user?.username ?? "Belum masuk";
 
   const handleLogout = async () => {
     await logout();
@@ -74,7 +74,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             type="button"
             onClick={onClose}
             className="md:hidden text-sidebar-text hover:text-white p-1.5 rounded-md hover:bg-white/5 transition-colors cursor-pointer"
-            aria-label="Close menu"
+            aria-label="Tutup menu"
           >
             <X size={18} />
           </button>
@@ -128,8 +128,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             type="button"
             onClick={handleLogout}
             className="text-sidebar-text hover:text-white p-1.5 rounded-md hover:bg-white/5 transition-colors cursor-pointer shrink-0"
-            aria-label="Log out"
-            title="Log out"
+            aria-label="Keluar"
+            title="Keluar"
           >
             <LogOut size={16} />
           </button>

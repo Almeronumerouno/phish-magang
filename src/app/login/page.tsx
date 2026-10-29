@@ -19,7 +19,7 @@ export default function LoginPage() {
     setError(null);
 
     if (!username || !password) {
-      setError("Please fill in both username and password.");
+      setError("Silakan isi username dan password.");
       return;
     }
 
@@ -32,7 +32,7 @@ export default function LoginPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Sign in failed. Please try again.",
+          : "Gagal masuk. Silakan coba lagi.",
       );
       setIsLoading(false);
     }
@@ -49,7 +49,7 @@ export default function LoginPage() {
       <div className="min-h-screen w-full flex items-center justify-center bg-background">
         <div
           className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-foreground"
-          aria-label="Loading"
+          aria-label="Memuat..."
         />
       </div>
     );
@@ -66,8 +66,8 @@ export default function LoginPage() {
           <div className="w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center shadow-lg mb-4">
             <ShieldCheck size={26} strokeWidth={2} />
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Welcome Back</h1>
-          <p className="text-sm text-muted mt-1">Sign in to Red Team Simulation</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Masuk ke Sistem</h1>
+          <p className="text-sm text-muted mt-1">Platform Simulasi Red Team</p>
         </div>
 
         <div className="bg-card rounded-2xl border border-border p-6 sm:p-8 shadow-xl shadow-black/[0.03]">
@@ -124,10 +124,10 @@ export default function LoginPage() {
               className="w-full h-11 bg-btn-primary text-btn-primary-text font-medium text-sm rounded-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 mt-4 shadow-md hover:shadow-lg"
             >
               {isLoading ? (
-                <span>Signing In...</span>
+                <span>Sedang Masuk...</span>
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>Masuk</span>
                   <ArrowRight size={16} />
                 </>
               )}
@@ -135,12 +135,12 @@ export default function LoginPage() {
           </form>
 
           <p className="text-center text-sm text-body mt-6 pt-5 border-t border-border">
-            Don&apos;t have an account?{" "}
+            Belum memiliki akun?{" "}
             <Link
               href="/register"
               className="text-foreground font-semibold hover:text-black transition-colors"
             >
-              Register here
+              Daftar di sini
             </Link>
           </p>
         </div>

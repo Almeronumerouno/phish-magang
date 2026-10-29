@@ -22,6 +22,17 @@ type DashboardData = {
   recentCampaigns: Campaign[];
 };
 
+const statusLabels: Record<string, string> = {
+  Completed: "Selesai",
+  "In Progress": "Sedang Berjalan",
+  In_Progress: "Sedang Berjalan",
+  Active: "Aktif",
+  Scheduled: "Terjadwal",
+  Paused: "Dijeda",
+  Draft: "Draf",
+  Error: "Gagal",
+};
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,16 +76,16 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-bold leading-tight sm:leading-[44px] tracking-tight text-foreground">
-            Security Awareness Overview
+            Ringkasan Security Awareness
           </h1>
           <p className="text-xs sm:text-sm text-body mt-1">
-            Real-time metrics and campaign performance tracking
+            Metrik real-time dan pelacakan performa campaign
           </p>
         </div>
         <button
           type="button"
           className="self-end sm:self-start p-2 rounded-md hover:bg-black/5 cursor-pointer"
-          aria-label="More options"
+          aria-label="Opsi lainnya"
         >
           <MoreHorizontal size={20} className="text-body" />
         </button>
@@ -82,11 +93,11 @@ export default function DashboardPage() {
 
       {/* Stats Grid - 2 cols on mobile, 4 cols on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard label="Active Campaigns" value={activeCampaigns} />
-        <StatCard label="Total Emails Sent" value={totalEmailsSent.toLocaleString()} />
-        <StatCard label="Emails Opened" value={emailsOpened.toLocaleString()} />
+        <StatCard label="Campaign Aktif" value={activeCampaigns.toLocaleString('id-ID')} />
+        <StatCard label="Total Email Dikirim" value={totalEmailsSent.toLocaleString('id-ID')} />
+        <StatCard label="Email Dibuka" value={emailsOpened.toLocaleString('id-ID')} />
         <StatCard
-          label="Click Rate"
+          label="Rasio Klik"
           value={clickRate}
         />
       </div>
@@ -95,14 +106,14 @@ export default function DashboardPage() {
       <div className="bg-card rounded-lg border border-border p-4 sm:p-5 overflow-hidden">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="text-xs sm:text-sm font-semibold text-foreground">
-            Emails Sent Over Time
+            Tren Pengiriman Email
           </h2>
           <div className="flex gap-1.5 sm:gap-2">
             <button className="px-2.5 sm:px-3 py-1 text-xs font-medium bg-foreground text-white rounded-md cursor-pointer">
-              6M
+              6 Bln
             </button>
             <button className="px-2.5 sm:px-3 py-1 text-xs font-medium text-muted hover:bg-gray-100 rounded-md cursor-pointer">
-              1Y
+              1 Thn
             </button>
           </div>
         </div>
@@ -152,16 +163,16 @@ export default function DashboardPage() {
       <div className="bg-card rounded-lg border border-border overflow-hidden">
         <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-border">
           <h2 className="text-xs sm:text-sm font-semibold text-foreground">
-            Recent Activity
+            Aktivitas Terbaru
           </h2>
           <button className="text-xs text-muted hover:text-foreground cursor-pointer">
-            View all
+            Lihat semua
           </button>
         </div>
         
         {recentCampaigns.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted">
-            No campaigns yet.
+            Belum ada campaign.
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
@@ -172,19 +183,19 @@ export default function DashboardPage() {
                     Campaign
                   </th>
                   <th className="px-4 sm:px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                    Date
+                    Tanggal
                   </th>
                   <th className="px-4 sm:px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
                     Status
                   </th>
                   <th className="px-4 sm:px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                    Sent
+                    Terkirim
                   </th>
                   <th className="px-4 sm:px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                    Opened
+                    Dibuka
                   </th>
                   <th className="px-4 sm:px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                    Clicked
+                    Diklik
                   </th>
                 </tr>
               </thead>
@@ -198,7 +209,7 @@ export default function DashboardPage() {
                       {row.campaign}
                     </td>
                     <td className="px-4 sm:px-5 py-3 text-sm text-body whitespace-nowrap">
-                      {new Date(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {new Date(row.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-4 sm:px-5 py-3 whitespace-nowrap">
                       <span
@@ -210,17 +221,17 @@ export default function DashboardPage() {
                             : "bg-yellow-50 text-yellow-700"
                         }`}
                       >
-                        {row.status}
+                        {statusLabels[row.status] || row.status}
                       </span>
                     </td>
                     <td className="px-4 sm:px-5 py-3 text-sm text-body whitespace-nowrap">
-                      {row.sent}
+                      {row.sent.toLocaleString('id-ID')}
                     </td>
                     <td className="px-4 sm:px-5 py-3 text-sm text-body whitespace-nowrap">
-                      {row.opened}
+                      {row.opened.toLocaleString('id-ID')}
                     </td>
                     <td className="px-4 sm:px-5 py-3 text-sm text-body whitespace-nowrap">
-                      {row.clicked}
+                      {row.clicked.toLocaleString('id-ID')}
                     </td>
                   </tr>
                 ))}

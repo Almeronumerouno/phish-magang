@@ -246,10 +246,10 @@ export default function CampaignsPage() {
         const data = await res.json();
         setPreviewTemplate(data);
       } else {
-        showToast("Failed to load template preview.");
+        showToast("Gagal memuat pratinjau template.");
       }
     } catch {
-      showToast("Error retrieving template preview.");
+      showToast("Terjadi kesalahan saat mengambil pratinjau template.");
     } finally {
       setPreviewLoading(false);
     }
@@ -260,27 +260,27 @@ export default function CampaignsPage() {
     setFormError(null);
 
     if (!formData.name.trim()) {
-      setFormError("Campaign Name is required.");
+      setFormError("Nama Campaign wajib diisi.");
       return;
     }
     if (!formData.templateId) {
-      setFormError("Please select an Email Template.");
+      setFormError("Silakan pilih Email Template.");
       return;
     }
     if (!formData.pageId) {
-      setFormError("Please select a Landing Page.");
+      setFormError("Silakan pilih Landing Page.");
       return;
     }
     if (!formData.smtpId) {
-      setFormError("Please select a Sending Profile.");
+      setFormError("Silakan pilih Sending Profile.");
       return;
     }
     if (!formData.groupId) {
-      setFormError("Please select a Target Group.");
+      setFormError("Silakan pilih Target Group.");
       return;
     }
     if (!formData.url.trim() || !formData.url.startsWith("http")) {
-      setFormError("A valid HTTP or HTTPS Phishing URL is required.");
+      setFormError("URL phishing HTTP atau HTTPS yang valid wajib diisi.");
       return;
     }
 
@@ -311,7 +311,7 @@ export default function CampaignsPage() {
 
       if (res.ok) {
         const created = await res.json();
-        showToast(`Campaign "${created.name}" launched successfully!`);
+        showToast(`Campaign "${created.name}" berhasil diluncurkan.`);
         setIsModalOpen(false);
         setFormData({
           name: "",
@@ -327,28 +327,28 @@ export default function CampaignsPage() {
         fetchCampaigns();
       } else {
         const err = await res.json().catch(() => ({}));
-        setFormError(err.error || "Failed to create campaign.");
+        setFormError(err.error || "Gagal membuat campaign.");
       }
     } catch (e) {
       console.error(e);
-      setFormError("Network error while launching campaign.");
+      setFormError("Terjadi kesalahan jaringan saat meluncurkan campaign.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteCampaign = async (id: number, name: string) => {
-    if (confirm(`Permanently delete campaign "${name}"?`)) {
+    if (confirm(`Hapus campaign "${name}" secara permanen?`)) {
       try {
         const res = await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
         if (res.ok) {
           setCampaigns((prev) => prev.filter((c) => c.id !== id));
-          showToast(`Campaign "${name}" deleted.`);
+          showToast(`Campaign "${name}" berhasil dihapus.`);
         } else {
-          showToast("Failed to delete campaign.");
+          showToast("Gagal menghapus campaign.");
         }
       } catch {
-        showToast("Network error deleting campaign.");
+        showToast("Terjadi kesalahan jaringan saat menghapus campaign.");
       }
     }
   };
@@ -363,7 +363,7 @@ export default function CampaignsPage() {
         : "Completed";
 
     if (isCompleted) {
-      showToast("Completed campaigns cannot be resumed.");
+      showToast("Campaign yang telah selesai tidak dapat dilanjutkan kembali.");
       return;
     }
 
@@ -374,18 +374,22 @@ export default function CampaignsPage() {
         body: JSON.stringify({ status: nextStatus }),
       });
       if (res.ok) {
-        showToast(`Campaign "${cmp.name}" is now ${nextStatus}.`);
+        showToast(
+          `Status campaign "${cmp.name}" kini ${
+            nextStatus === "Active" ? "Aktif" : nextStatus === "Paused" ? "Dijeda" : "Selesai"
+          }.`
+        );
         fetchCampaigns();
       } else {
-        showToast("Failed to update campaign status.");
+        showToast("Gagal memperbarui status campaign.");
       }
     } catch {
-      showToast("Error updating status.");
+      showToast("Terjadi kesalahan saat memperbarui status.");
     }
   };
 
   const handleCompleteCampaign = async (cmp: CampaignItem) => {
-    if (!confirm(`Mark campaign "${cmp.name}" as Completed?`)) return;
+    if (!confirm(`Tandai campaign "${cmp.name}" sebagai Selesai?`)) return;
     try {
       const res = await fetch(`/api/campaigns/${cmp.id}`, {
         method: "PATCH",
@@ -393,11 +397,11 @@ export default function CampaignsPage() {
         body: JSON.stringify({ status: "Completed" }),
       });
       if (res.ok) {
-        showToast(`Campaign "${cmp.name}" marked as Completed.`);
+        showToast(`Campaign "${cmp.name}" berhasil ditandai sebagai Selesai.`);
         fetchCampaigns();
       }
     } catch {
-      showToast("Error completing campaign.");
+      showToast("Terjadi kesalahan saat menyelesaikan campaign.");
     }
   };
 
@@ -483,7 +487,7 @@ export default function CampaignsPage() {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          Completed
+          Selesai
         </span>
       );
     }
@@ -491,7 +495,7 @@ export default function CampaignsPage() {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-          In Progress
+          Sedang Berjalan
         </span>
       );
     }
@@ -499,7 +503,7 @@ export default function CampaignsPage() {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-          Scheduled
+          Terjadwal
         </span>
       );
     }
@@ -507,7 +511,7 @@ export default function CampaignsPage() {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-300">
           <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-          Paused
+          Dijeda
         </span>
       );
     }
@@ -535,7 +539,7 @@ export default function CampaignsPage() {
             Campaigns
           </h1>
           <p className="text-xs sm:text-sm text-body">
-            Manage red team simulation lifecycles, schedule dispatches, and track real-time telemetry.
+            Kelola siklus simulasi red team, jadwalkan pengiriman, dan pantau telemetri secara real-time.
           </p>
         </div>
 
@@ -548,7 +552,7 @@ export default function CampaignsPage() {
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 bg-btn-primary text-btn-primary-text text-xs font-medium rounded-md shadow-xs hover:bg-gray-800 transition-colors cursor-pointer"
           >
             <Plus size={14} strokeWidth={2.5} />
-            <span>New Campaign</span>
+            <span>Campaign Baru</span>
           </button>
 
           {/* Refresh Data Button */}
@@ -556,10 +560,10 @@ export default function CampaignsPage() {
             type="button"
             onClick={fetchCampaigns}
             className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 bg-card border border-border text-xs font-medium text-foreground rounded-md shadow-xs hover:bg-gray-50 transition-colors cursor-pointer"
-            title="Refresh campaigns"
+            title="Segarkan data campaign"
           >
             <RefreshCw size={13} className="text-muted" />
-            <span>Refresh</span>
+            <span>Segarkan</span>
           </button>
         </div>
       </div>
@@ -569,7 +573,7 @@ export default function CampaignsPage() {
         {/* Card 1: Total Campaigns Run */}
         <div className="bg-card rounded-lg border border-border p-5 flex flex-col justify-between shadow-xs">
           <div className="flex items-start justify-between">
-            <span className="text-xs text-muted font-medium">Total Campaigns Run</span>
+            <span className="text-xs text-muted font-medium">Total Campaign Dijalankan</span>
             <div className="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
               <Radio size={14} />
             </div>
@@ -579,7 +583,7 @@ export default function CampaignsPage() {
               {aggregateMetrics.totalCampaigns}
             </span>
             <p className="text-xs font-medium text-zinc-500 mt-1 flex items-center gap-1">
-              <span>{aggregateMetrics.totalSent} total emails dispatched</span>
+              <span>{aggregateMetrics.totalSent} total email dikirim</span>
             </p>
           </div>
         </div>
@@ -587,7 +591,7 @@ export default function CampaignsPage() {
         {/* Card 2: Overall Open Rate */}
         <div className="bg-card rounded-lg border border-border p-5 flex flex-col justify-between shadow-xs">
           <div className="flex items-start justify-between">
-            <span className="text-xs text-muted font-medium">Overall Open Rate</span>
+            <span className="text-xs text-muted font-medium">Rasio Buka Keseluruhan</span>
             <div className="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
               <Lock size={14} />
             </div>
@@ -597,7 +601,7 @@ export default function CampaignsPage() {
               {aggregateMetrics.openRate}%
             </span>
             <p className="text-xs font-medium text-blue-600 mt-1 flex items-center gap-1">
-              <span>{aggregateMetrics.totalOpened} opened out of {aggregateMetrics.totalSent}</span>
+              <span>{aggregateMetrics.totalOpened} dibuka dari {aggregateMetrics.totalSent}</span>
             </p>
           </div>
         </div>
@@ -605,7 +609,7 @@ export default function CampaignsPage() {
         {/* Card 3: Overall Click Rate */}
         <div className="bg-card rounded-lg border border-border p-5 flex flex-col justify-between shadow-xs">
           <div className="flex items-start justify-between">
-            <span className="text-xs text-muted font-medium">Overall Click Rate</span>
+            <span className="text-xs text-muted font-medium">Rasio Klik Keseluruhan</span>
             <div className="w-7 h-7 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center">
               <MousePointerClick size={14} />
             </div>
@@ -615,7 +619,7 @@ export default function CampaignsPage() {
               {aggregateMetrics.clickRate}%
             </span>
             <p className="text-xs font-medium text-amber-600 mt-1 flex items-center gap-1">
-              <span>{aggregateMetrics.totalClicked} clicked simulation link</span>
+              <span>{aggregateMetrics.totalClicked} mengklik tautan simulasi</span>
             </p>
           </div>
         </div>
@@ -623,7 +627,7 @@ export default function CampaignsPage() {
         {/* Card 4: Cred Submission Rate */}
         <div className="bg-card rounded-lg border border-border p-5 flex flex-col justify-between shadow-xs">
           <div className="flex items-start justify-between">
-            <span className="text-xs text-muted font-medium">Cred Submission Rate</span>
+            <span className="text-xs text-muted font-medium">Rasio Submit Kredensial</span>
             <div className="w-7 h-7 rounded-md bg-red-50 text-red-600 flex items-center justify-center">
               <KeyRound size={14} />
             </div>
@@ -633,7 +637,7 @@ export default function CampaignsPage() {
               {aggregateMetrics.submitRate}%
             </span>
             <p className="text-xs font-medium text-red-600 mt-1 flex items-center gap-1">
-              <span>{aggregateMetrics.totalSubmitted} compromised credentials</span>
+              <span>{aggregateMetrics.totalSubmitted} kredensial terkompromi</span>
             </p>
           </div>
         </div>
@@ -642,23 +646,29 @@ export default function CampaignsPage() {
       {/* ===================== CAMPAIGN STATUS SUMMARY BAR ===================== */}
       <div className="bg-card rounded-lg border border-border p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-muted uppercase tracking-wider">Campaign Filter:</span>
+          <span className="text-xs font-bold text-muted uppercase tracking-wider">Filter Campaign:</span>
           <div className="flex items-center gap-1">
-            {["All", "Active", "Completed", "Scheduled", "Paused"].map((st) => (
+            {[
+              { key: "All", label: "Semua" },
+              { key: "Active", label: "Aktif" },
+              { key: "Completed", label: "Selesai" },
+              { key: "Scheduled", label: "Terjadwal" },
+              { key: "Paused", label: "Dijeda" },
+            ].map(({ key, label }) => (
               <button
-                key={st}
+                key={key}
                 type="button"
                 onClick={() => {
-                  setStatusFilter(st);
+                  setStatusFilter(key);
                   setCurrentPage(1);
                 }}
                 className={`px-3 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
-                  statusFilter === st
+                  statusFilter === key
                     ? "bg-foreground text-white"
                     : "text-body hover:bg-gray-100"
                 }`}
               >
-                {st}
+                {label}
               </button>
             ))}
           </div>
@@ -667,9 +677,9 @@ export default function CampaignsPage() {
         <div className="flex items-center gap-3 text-xs text-muted">
           <span>Total: <strong className="text-foreground">{campaigns.length}</strong></span>
           <span>•</span>
-          <span>Active: <strong className="text-amber-600">{campaigns.filter((c) => c.status === "Active" || c.status === "In_Progress").length}</strong></span>
+          <span>Aktif: <strong className="text-amber-600">{campaigns.filter((c) => c.status === "Active" || c.status === "In_Progress").length}</strong></span>
           <span>•</span>
-          <span>Completed: <strong className="text-emerald-600">{campaigns.filter((c) => c.status === "Completed").length}</strong></span>
+          <span>Selesai: <strong className="text-emerald-600">{campaigns.filter((c) => c.status === "Completed").length}</strong></span>
         </div>
       </div>
 
@@ -679,10 +689,10 @@ export default function CampaignsPage() {
         <div className="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-0.5">
             <h2 className="text-sm font-semibold text-foreground">
-              Simulation Campaigns ({filteredCampaigns.length})
+              Campaign Simulasi ({filteredCampaigns.length})
             </h2>
             <p className="text-xs text-muted">
-              Live campaign audit log with authentic database-backed telemetry.
+              Log audit simulasi langsung dengan telemetri berbasis database.
             </p>
           </div>
 
@@ -693,7 +703,7 @@ export default function CampaignsPage() {
             />
             <input
               type="text"
-              placeholder="Search campaigns, templates, groups..."
+              placeholder="Cari campaign, template, grup..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -710,28 +720,28 @@ export default function CampaignsPage() {
             <thead>
               <tr className="border-b border-border bg-gray-50/50">
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                  Campaign Name
+                  Nama Campaign
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                  Template & Audience
+                  Template & Audiens
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                  Created Date
+                  Tanggal Dibuat
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                  Recipients
+                  Penerima
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                  Opens
+                  Dibuka
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                  Clicks
+                  Diklik
                 </th>
                 <th className="px-5 py-3 text-center text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
                   Status
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">
-                  Actions
+                  Aksi
                 </th>
               </tr>
             </thead>
@@ -740,15 +750,15 @@ export default function CampaignsPage() {
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-xs text-muted">
                     <div className="inline-block w-5 h-5 border-2 border-border border-t-foreground rounded-full animate-spin mr-2" />
-                    Loading campaigns...
+                    Memuat data campaign...
                   </td>
                 </tr>
               ) : paginatedCampaigns.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-5 py-12 text-center text-xs text-empty">
                     {searchQuery || statusFilter !== "All"
-                      ? "No campaigns match your search or filter."
-                      : "Belum ada kampanye simulasi. Klik \"New Campaign\" untuk membuat yang pertama!"}
+                      ? "Tidak ada campaign yang cocok dengan pencarian atau filter."
+                      : "Belum ada campaign yang terdaftar."}
                   </td>
                 </tr>
               ) : (
@@ -779,14 +789,14 @@ export default function CampaignsPage() {
                       </td>
                       <td className="px-5 py-3.5 text-xs text-body whitespace-nowrap">
                         <div className="font-medium text-foreground truncate max-w-[200px]">
-                          {row.template?.name || "No Template"}
+                          {row.template?.name || "Tanpa Template"}
                         </div>
                         <div className="text-[11px] text-muted truncate max-w-[200px]">
-                          Target: {row.group?.name || "No Group"}
+                          Target: {row.group?.name || "Tanpa Grup"}
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-xs text-muted whitespace-nowrap">
-                        {new Date(row.createdDate).toLocaleDateString()}
+                        {new Date(row.createdDate).toLocaleDateString("id-ID")}
                       </td>
                       <td className="px-5 py-3.5 text-xs text-body text-right font-medium whitespace-nowrap">
                         {recipients}
@@ -818,7 +828,7 @@ export default function CampaignsPage() {
                           <Link
                             href={`/campaigns/${row.id}`}
                             className="p-1.5 hover:bg-gray-100 rounded text-muted hover:text-foreground transition-colors"
-                            title="View Campaign Details & Telemetry"
+                            title="Lihat Detail & Telemetri Campaign"
                           >
                             <Eye size={14} />
                           </Link>
@@ -829,7 +839,7 @@ export default function CampaignsPage() {
                               type="button"
                               onClick={() => handleCompleteCampaign(row)}
                               className="p-1.5 hover:bg-emerald-50 rounded text-muted hover:text-emerald-600 cursor-pointer transition-colors"
-                              title="Mark as Completed"
+                              title="Tandai Selesai"
                             >
                               <Flag size={14} />
                             </button>
@@ -841,7 +851,7 @@ export default function CampaignsPage() {
                               type="button"
                               onClick={() => handleToggleStatus(row)}
                               className="p-1.5 hover:bg-gray-100 rounded text-muted hover:text-foreground cursor-pointer transition-colors"
-                              title={row.status === "Active" || row.status === "In_Progress" ? "Pause Campaign" : "Resume Campaign"}
+                              title={row.status === "Active" || row.status === "In_Progress" ? "Jeda Campaign" : "Lanjutkan Campaign"}
                             >
                               {row.status === "Active" || row.status === "In_Progress" ? (
                                 <Pause size={14} />
@@ -856,7 +866,7 @@ export default function CampaignsPage() {
                             type="button"
                             onClick={() => handleDeleteCampaign(row.id, row.name)}
                             className="p-1.5 hover:bg-red-50 rounded text-muted hover:text-red-600 cursor-pointer transition-colors"
-                            title="Delete Campaign"
+                            title="Hapus Campaign"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -873,8 +883,8 @@ export default function CampaignsPage() {
         {/* Table Footer: Pagination & Counts */}
         <div className="px-5 py-3.5 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-muted">
           <span>
-            Showing {filteredCampaigns.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{" "}
-            {Math.min(currentPage * pageSize, filteredCampaigns.length)} of {filteredCampaigns.length} campaigns
+            Menampilkan {filteredCampaigns.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} hingga{" "}
+            {Math.min(currentPage * pageSize, filteredCampaigns.length)} dari {filteredCampaigns.length} campaign
           </span>
 
           <div className="flex items-center gap-1 self-end sm:self-auto">
@@ -926,11 +936,11 @@ export default function CampaignsPage() {
                     <Radio size={15} />
                   </div>
                   <h2 className="text-lg sm:text-xl font-bold text-foreground">
-                    New Campaign
+                    Campaign Baru
                   </h2>
                 </div>
                 <p className="text-xs text-body">
-                  Configure simulation targets, email lures, cloned landing pages, and dispatch parameters.
+                  Konfigurasikan target simulasi, umpan email, landing page tiruan, dan parameter pengiriman.
                 </p>
               </div>
               <button
@@ -954,12 +964,12 @@ export default function CampaignsPage() {
               {/* Campaign Name */}
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  Campaign Name <span className="text-red-500">*</span>
+                  Nama Campaign <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Q4 Executive Security Awareness Assessment"
+                  placeholder="cth. Evaluasi Kesadaran Keamanan Eksekutif Q4"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3.5 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
@@ -979,7 +989,7 @@ export default function CampaignsPage() {
                       className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
                     >
                       <Eye size={12} />
-                      <span>Preview Selected Template</span>
+                      <span>Pratinjau Template Terpilih</span>
                     </button>
                   )}
                 </div>
@@ -989,7 +999,7 @@ export default function CampaignsPage() {
                   onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
                   className="w-full px-3 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                 >
-                  <option value="">Select an Email Template...</option>
+                  <option value="">Pilih Email Template...</option>
                   {templates.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.name} {t.subject ? `— (${t.subject})` : ""}
@@ -998,7 +1008,7 @@ export default function CampaignsPage() {
                 </select>
                 {templates.length === 0 && (
                   <p className="text-[11px] text-amber-600 mt-1">
-                    No templates found. Create one first under <Link href="/email-templates" className="underline">Email Templates</Link>.
+                    Template tidak ditemukan. Buat template terlebih dahulu di menu <Link href="/email-templates" className="underline">Email Templates</Link>.
                   </p>
                 )}
               </div>
@@ -1014,7 +1024,7 @@ export default function CampaignsPage() {
                   onChange={(e) => setFormData({ ...formData, pageId: e.target.value })}
                   className="w-full px-3 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                 >
-                  <option value="">Select a Landing Page...</option>
+                  <option value="">Pilih Landing Page...</option>
                   {landingPages.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -1057,14 +1067,14 @@ export default function CampaignsPage() {
                           networkMode === "same_wifi" ? "bg-emerald-400" : "bg-emerald-500"
                         }`}
                       />
-                      <span>1. Wi-Fi yang Sama</span>
+                      <span>1. Jaringan Lokal (LAN)</span>
                     </div>
                     <span
                       className={`text-[10px] mt-0.5 ${
                         networkMode === "same_wifi" ? "text-zinc-300" : "text-muted"
                       }`}
                     >
-                      Target di jaringan Wi-Fi/LAN lokal
+                      Target berada dalam jaringan LAN/Wi-Fi yang sama
                     </span>
                   </button>
 
@@ -1097,14 +1107,14 @@ export default function CampaignsPage() {
                           networkMode === "different_wifi" ? "bg-sky-400" : "bg-sky-500"
                         }`}
                       />
-                      <span>2. Beda Wi-Fi / Bebas</span>
+                      <span>2. Jaringan Publik (Internet)</span>
                     </div>
                     <span
                       className={`text-[10px] mt-0.5 ${
                         networkMode === "different_wifi" ? "text-zinc-300" : "text-muted"
                       }`}
                     >
-                      Target di kuota HP 4G/5G / luar
+                      Target mengakses melalui internet atau jaringan eksternal
                     </span>
                   </button>
                 </div>
@@ -1140,7 +1150,7 @@ export default function CampaignsPage() {
                         }
                       }}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground cursor-pointer"
-                      title="Refresh IP LAN"
+                      title="Segarkan IP LAN"
                     >
                       <RefreshCw size={13} />
                     </button>
@@ -1164,7 +1174,7 @@ export default function CampaignsPage() {
                         if (u) showToast("Tunnel URL disinkronkan");
                       }}
                       className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-foreground cursor-pointer"
-                      title="Refresh status tunnel"
+                      title="Segarkan status tunnel"
                     >
                       <RefreshCw size={13} />
                     </button>
@@ -1182,7 +1192,7 @@ export default function CampaignsPage() {
                     <div className="mt-2 p-2.5 rounded-md bg-zinc-50 border border-zinc-200 text-[11px] text-zinc-700 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <p className="font-medium text-foreground">
-                          Bisa diakses korban dari mana saja (kuota 4G/5G, Wi-Fi kafe/rumah).
+                          Dapat diakses target dari jaringan eksternal atau internet.
                         </p>
                         <button
                           type="button"
@@ -1192,7 +1202,7 @@ export default function CampaignsPage() {
                               setFormData((prev) => ({ ...prev, url: activeUrl }));
                               showToast(`Tunnel aktif terdeteksi: ${activeUrl}`);
                             } else {
-                              showToast("Tunnel belum aktif. Jalankan perintah di bawah.");
+                              showToast("Tunnel belum aktif. Silakan jalankan perintah tunnel terlebih dahulu.");
                             }
                           }}
                           disabled={checkingTunnel}
@@ -1203,7 +1213,7 @@ export default function CampaignsPage() {
                         </button>
                       </div>
                       <p className="text-muted leading-relaxed">
-                        Jalankan perintah ini di terminal untuk auto-lock URL:
+                        Jalankan perintah berikut pada terminal untuk mengaktifkan URL:
                       </p>
                       <div className="bg-white border border-border px-2.5 py-1.5 rounded font-mono text-[11px] text-zinc-800 select-all flex items-center justify-between">
                         <code>npx localtunnel --port 8080</code>
@@ -1226,7 +1236,7 @@ export default function CampaignsPage() {
                     onChange={(e) => setFormData({ ...formData, smtpId: e.target.value })}
                     className="w-full px-3 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                   >
-                    <option value="">Select Sending Profile...</option>
+                    <option value="">Pilih Sending Profile...</option>
                     {sendingProfiles.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name} {s.from_address || s.fromAddress ? `(${s.from_address || s.fromAddress})` : ""}
@@ -1245,10 +1255,10 @@ export default function CampaignsPage() {
                     onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
                     className="w-full px-3 py-2 text-xs sm:text-sm border border-border rounded-md bg-white text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
                   >
-                    <option value="">Select Target Group...</option>
+                    <option value="">Pilih Target Group...</option>
                     {targetGroups.map((g) => (
                       <option key={g.id} value={g.id}>
-                        {g.name} ({g._count?.targets ?? 0} targets)
+                        {g.name} ({g._count?.targets ?? 0} target)
                       </option>
                     ))}
                   </select>
@@ -1258,7 +1268,7 @@ export default function CampaignsPage() {
               {/* Dispatch Timing */}
               <div className="space-y-2 pt-2 border-t border-border">
                 <label className="block text-xs font-semibold text-foreground">
-                  Dispatch Schedule
+                  Jadwal Pengiriman
                 </label>
                 <div className="flex items-center gap-4 text-xs">
                   <label className="flex items-center gap-1.5 cursor-pointer">
@@ -1269,7 +1279,7 @@ export default function CampaignsPage() {
                       checked={formData.dispatchTiming === "immediate"}
                       onChange={() => setFormData({ ...formData, dispatchTiming: "immediate" })}
                     />
-                    <span>Launch Immediately</span>
+                    <span>Luncurkan Segera</span>
                   </label>
                   <label className="flex items-center gap-1.5 cursor-pointer">
                     <input
@@ -1279,7 +1289,7 @@ export default function CampaignsPage() {
                       checked={formData.dispatchTiming === "scheduled"}
                       onChange={() => setFormData({ ...formData, dispatchTiming: "scheduled" })}
                     />
-                    <span>Schedule for Later</span>
+                    <span>Jadwalkan Nanti</span>
                   </label>
                 </div>
 
@@ -1287,7 +1297,7 @@ export default function CampaignsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     <div>
                       <label className="block text-[11px] font-medium text-muted mb-1">
-                        Launch Date & Time
+                        Tanggal & Waktu Peluncuran
                       </label>
                       <input
                         type="datetime-local"
@@ -1298,7 +1308,7 @@ export default function CampaignsPage() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-medium text-muted mb-1">
-                        Send Emails By (Optional)
+                        Batas Waktu Pengiriman Email (Opsional)
                       </label>
                       <input
                         type="datetime-local"
@@ -1315,7 +1325,7 @@ export default function CampaignsPage() {
               <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-3 text-[11px] leading-relaxed">
                 <AlertTriangle size={15} className="shrink-0 text-amber-600 mt-0.5" />
                 <span>
-                  This simulation creates active recipient tracking tokens (<code className="font-mono bg-white/70 px-1 rounded">rId</code>) for all targets in the chosen group. Dispatches are strictly for authorized training.
+                  Simulasi ini membuat token pelacakan penerima aktif (<code className="font-mono bg-white/70 px-1 rounded">rId</code>) untuk seluruh target dalam grup yang dipilih. Pengiriman hanya ditujukan untuk pelatihan simulasi berwenang.
                 </span>
               </div>
 
@@ -1326,14 +1336,14 @@ export default function CampaignsPage() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-xs font-medium border border-border rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="px-5 py-2 bg-btn-primary text-btn-primary-text text-xs font-medium rounded-md hover:bg-gray-800 transition-all shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  {submitting ? "Launching..." : "Launch Campaign"}
+                  {submitting ? "Meluncurkan..." : "Luncurkan Campaign"}
                 </button>
               </div>
             </form>
@@ -1348,10 +1358,10 @@ export default function CampaignsPage() {
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-foreground">
-                  Template Preview: {previewTemplate.name}
+                  Pratinjau Template: {previewTemplate.name}
                 </h3>
                 <p className="text-xs text-muted">
-                  Subject: <strong className="text-foreground">{previewTemplate.subject || "(no subject)"}</strong>
+                  Subjek: <strong className="text-foreground">{previewTemplate.subject || "(tanpa subjek)"}</strong>
                 </p>
               </div>
               <button
@@ -1365,24 +1375,24 @@ export default function CampaignsPage() {
 
             <div className="p-3 bg-gray-50 border-b border-border text-xs flex items-center justify-between">
               <span className="text-muted">
-                From: <strong className="text-foreground">{previewTemplate.envelopeSender || previewTemplate.envelope_sender || "Not specified"}</strong>
+                Dari: <strong className="text-foreground">{previewTemplate.envelopeSender || previewTemplate.envelope_sender || "Tidak ditentukan"}</strong>
               </span>
               <span className="text-muted text-[11px]">
-                Attachments: {previewTemplate.attachments?.length ?? 0}
+                Lampiran: {previewTemplate.attachments?.length ?? 0}
               </span>
             </div>
 
             <div className="flex-1 p-4 overflow-y-auto bg-white min-h-[300px]">
               {previewTemplate.html ? (
                 <iframe
-                  title="Template HTML Preview"
+                  title="Pratinjau HTML Template"
                   srcDoc={previewTemplate.html}
                   className="w-full h-[320px] border border-border rounded bg-white"
                   sandbox="allow-same-origin"
                 />
               ) : (
                 <pre className="p-4 bg-gray-50 border border-border rounded text-xs font-mono whitespace-pre-wrap text-foreground">
-                  {previewTemplate.text || "(empty body)"}
+                  {previewTemplate.text || "(konten kosong)"}
                 </pre>
               )}
             </div>
@@ -1393,7 +1403,7 @@ export default function CampaignsPage() {
                 onClick={() => setPreviewTemplate(null)}
                 className="px-4 py-1.5 text-xs font-medium bg-foreground text-white rounded hover:bg-gray-800"
               >
-                Close Preview
+                Tutup Pratinjau
               </button>
             </div>
           </div>

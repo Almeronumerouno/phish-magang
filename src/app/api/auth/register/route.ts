@@ -17,23 +17,23 @@ export async function POST(req: Request) {
   const password = typeof body?.password === "string" ? body.password : "";
 
   if (!username) {
-    return NextResponse.json({ error: "Please enter a username." }, { status: 400 });
+    return NextResponse.json({ error: "Silakan masukkan username." }, { status: 400 });
   }
   if (!isValidUsername(username)) {
     return NextResponse.json(
-      { error: "Username must be 3-64 characters (letters, numbers, . _ - @)." },
+      { error: "Username harus 3-64 karakter (huruf, angka, . _ - @)." },
       { status: 400 },
     );
   }
   if (!password) {
     return NextResponse.json(
-      { error: "Password is required." },
+      { error: "Password wajib diisi." },
       { status: 400 },
     );
   }
   if (password.length < 8) {
     return NextResponse.json(
-      { error: "Password must be at least 8 characters." },
+      { error: "Password minimal 8 karakter." },
       { status: 400 },
     );
   }
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   const existing = await db.user.findUnique({ where: { username } });
   if (existing) {
     return NextResponse.json(
-      { error: "An account with this username already exists." },
+      { error: "Akun dengan username ini sudah terdaftar." },
       { status: 409 },
     );
   }

@@ -70,14 +70,14 @@ function CardThumbnail({ page, onPreview }: { page: LandingPage; onPreview: () =
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100 backdrop-blur-[1px]">
             <span className="px-3 py-1.5 rounded-full bg-black/80 text-white text-xs font-medium flex items-center gap-1.5 shadow-lg">
               <Eye size={13} />
-              Preview Website
+              Pratinjau Website
             </span>
           </div>
         </>
       ) : (
         <div className="flex flex-col items-center gap-1.5 text-muted/60">
           <ImageIcon size={32} strokeWidth={1.2} />
-          <span className="text-[11px]">No preview</span>
+          <span className="text-[11px]">Tidak ada pratinjau</span>
         </div>
       )}
     </div>
@@ -188,11 +188,11 @@ export default function TemplatesPage() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      setFormError("Template name is required.");
+      setFormError("Nama template wajib diisi.");
       return;
     }
     if (!html.trim()) {
-      setFormError("HTML content is required.");
+      setFormError("Konten HTML wajib diisi.");
       return;
     }
     setSaving(true);
@@ -231,7 +231,7 @@ export default function TemplatesPage() {
   };
 
   const handleDelete = async (page: LandingPage) => {
-    if (!confirm(`Hapus "${page.name}"?`)) return;
+    if (!confirm(`Hapus template "${page.name}"?`)) return;
     try {
       const res = await fetch(`/api/landing-pages/${page.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Gagal menghapus template.");
@@ -260,7 +260,7 @@ export default function TemplatesPage() {
           className="flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 text-xs font-medium rounded-md shadow-[0_1px_3px_rgba(15,23,42,0.08)] transition-all cursor-pointer w-full sm:w-auto bg-btn-primary text-btn-primary-text hover:bg-gray-800 active:scale-95"
         >
           <Plus size={12} strokeWidth={2.5} />
-          <span>New Template</span>
+          <span>Template Baru</span>
         </button>
       </div>
 
@@ -271,12 +271,12 @@ export default function TemplatesPage() {
             {/* Modal Header */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-card sticky top-0 z-10">
               <h2 className="text-xl font-bold text-foreground">
-                {editingId === null ? "New Template" : "Edit Template"}
+                {editingId === null ? "Template Baru" : "Edit Template"}
               </h2>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                aria-label="Close modal"
+                aria-label="Tutup modal"
                 className="text-muted hover:text-foreground transition-colors p-1"
               >
                 <X size={20} strokeWidth={2} />
@@ -294,12 +294,12 @@ export default function TemplatesPage() {
               {/* Name field */}
               <div className="space-y-1.5">
                 <label htmlFor="lp-name" className="text-sm font-semibold text-foreground">
-                  Name:
+                  Nama:
                 </label>
                 <input
                   id="lp-name"
                   type="text"
-                  placeholder="Template name"
+                  placeholder="Nama template"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-3.5 py-2 border border-border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-teal-500/40 text-sm"
@@ -317,7 +317,7 @@ export default function TemplatesPage() {
                   className="flex items-center gap-2 bg-[#d9534f] hover:bg-[#c9302c] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm"
                 >
                   <Globe size={16} />
-                  <span>Import Site</span>
+                  <span>Import Situs</span>
                 </button>
               </div>
 
@@ -345,7 +345,7 @@ export default function TemplatesPage() {
                           : "text-muted hover:text-foreground"
                       }`}
                     >
-                      Preview
+                      Pratinjau
                     </button>
                   </div>
                   {activeTab === "html" && (
@@ -359,7 +359,7 @@ export default function TemplatesPage() {
                   <textarea
                     value={html}
                     onChange={(e) => setHtml(e.target.value)}
-                    placeholder="Masukkan HTML di sini, atau klik 'Import Site' di atas untuk meng-clone website otomatis..."
+                    placeholder="Masukkan kode HTML di sini, atau gunakan fitur 'Import Situs' untuk kloning website."
                     className="w-full min-h-[300px] max-h-[460px] p-4 font-mono text-xs bg-card focus:outline-none focus:ring-1 focus:ring-teal-500/40 resize-y leading-relaxed"
                   />
                 ) : (
@@ -368,7 +368,7 @@ export default function TemplatesPage() {
                       title="Live Preview"
                       srcDoc={
                         html ||
-                        "<div style='display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-family:sans-serif;'>Belum ada HTML untuk di-preview. Silakan masukkan HTML atau klik 'Import Site'.</div>"
+                        "<div style='display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-family:sans-serif;'>Belum ada konten HTML untuk dipratinjau. Masukkan kode HTML atau gunakan fitur 'Import Situs'.</div>"
                       }
                       className="w-full h-full border-0"
                       sandbox="allow-same-origin allow-scripts allow-forms"
@@ -389,8 +389,8 @@ export default function TemplatesPage() {
                     }}
                     className="w-4 h-4 cursor-pointer accent-teal-600 rounded"
                   />
-                  <span>Capture Submitted Data</span>
-                  <span title="If the landing page contains a form, submitted input will be captured.">
+                  <span>Tangkap Data yang Dikirim (Capture Submitted Data)</span>
+                  <span title="Jika landing page berisi formulir, input yang dikirimkan target akan ditangkap.">
                     <HelpCircle size={14} className="text-muted" />
                   </span>
                 </label>
@@ -404,7 +404,7 @@ export default function TemplatesPage() {
                         onChange={(e) => setCapturePasswords(e.target.checked)}
                         className="w-4 h-4 cursor-pointer accent-teal-600 rounded"
                       />
-                      <span>Capture Passwords</span>
+                      <span>Tangkap Kata Sandi (Capture Passwords)</span>
                     </label>
                     <div className="p-2.5 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md">
                       ⚠️ <b>Perhatian:</b> Data kredensial disimpan untuk keperluan evaluasi simulasi keamanan.
@@ -416,7 +416,7 @@ export default function TemplatesPage() {
               {/* Redirect URL input (GoPhish standard) */}
               <div className="space-y-1.5 pt-1">
                 <label htmlFor="lp-redirect" className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                  <span>Redirect to:</span>
+                  <span>Alihkan ke (Redirect):</span>
                   <span title="Opsi ini mengalihkan user ke website asli setelah submit data">
                     <HelpCircle size={14} className="text-muted" />
                   </span>
@@ -439,7 +439,7 @@ export default function TemplatesPage() {
                 onClick={() => setModalOpen(false)}
                 className="px-5 py-2.5 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-semibold uppercase tracking-wider transition-colors"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -447,7 +447,7 @@ export default function TemplatesPage() {
                 disabled={saving}
                 className="px-5 py-2.5 rounded-md bg-[#1ABB9C] hover:bg-[#16a085] text-white text-xs font-semibold uppercase tracking-wider transition-colors disabled:opacity-50 shadow-sm"
               >
-                {saving ? "Saving..." : "Save Template"}
+                {saving ? "Menyimpan..." : "Simpan Template"}
               </button>
             </div>
           </div>
@@ -460,7 +460,7 @@ export default function TemplatesPage() {
           <div className="bg-card border border-border rounded-xl text-foreground shadow-2xl w-full max-w-[500px] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
             <div className="flex justify-between items-center px-5 py-3.5 border-b border-border bg-card">
               <h3 className="text-base font-bold text-foreground">
-                Import Site
+                Import Situs
               </h3>
               <button
                 type="button"
@@ -468,7 +468,7 @@ export default function TemplatesPage() {
                   setImportOpen(false);
                   setImportError(null);
                 }}
-                aria-label="Close modal"
+                aria-label="Tutup modal"
                 className="text-muted hover:text-foreground transition-colors p-1"
               >
                 <X size={18} />
@@ -514,7 +514,7 @@ export default function TemplatesPage() {
                 disabled={importing}
                 className="px-4 py-2 text-xs font-medium border border-border rounded-md hover:bg-gray-100 transition-colors"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -523,7 +523,7 @@ export default function TemplatesPage() {
                 className="px-5 py-2 text-xs font-medium bg-btn-primary text-btn-primary-text rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm"
               >
                 {importing && <Loader2 size={14} className="animate-spin" />}
-                <span>{importing ? "Importing..." : "Import"}</span>
+                <span>{importing ? "Mengimpor..." : "Import"}</span>
               </button>
             </div>
           </div>
@@ -545,7 +545,7 @@ export default function TemplatesPage() {
             onClick={fetchPages}
             className="px-4 py-2 text-xs font-medium border border-border rounded-md hover:bg-gray-50 transition-colors"
           >
-            Retry
+            Coba Lagi
           </button>
         </div>
       )}
@@ -561,10 +561,10 @@ export default function TemplatesPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-sm sm:text-base font-semibold text-foreground">
-                Template Library
+                Pustaka Template
               </h2>
               <span className="text-[11px] sm:text-xs bg-gray-100 text-muted px-2 py-0.5 rounded-full font-medium">
-                {pages.length} templates
+                {pages.length} template
               </span>
             </div>
           </div>
@@ -582,7 +582,7 @@ export default function TemplatesPage() {
                       {page.name}
                     </h3>
                     <p className="text-xs text-body/80 mt-0.5">
-                      {new Date(page.modifiedDate).toLocaleDateString()}
+                      {new Date(page.modifiedDate).toLocaleDateString("id-ID")}
                     </p>
                     {page.redirectUrl && (
                       <p className="text-[11px] text-muted truncate mt-0.5 font-mono" title={page.redirectUrl}>
@@ -592,12 +592,12 @@ export default function TemplatesPage() {
                     <div className="flex gap-1.5 mt-2 flex-wrap">
                       {page.captureCredentials && (
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">
-                          Submitted Data
+                          Data Terkirim
                         </span>
                       )}
                       {page.capturePasswords && (
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-                          Passwords
+                          Kata Sandi
                         </span>
                       )}
                     </div>
@@ -610,14 +610,14 @@ export default function TemplatesPage() {
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-btn-primary text-btn-primary-text rounded hover:bg-gray-800 transition-colors cursor-pointer"
                     >
                       <Eye size={13} />
-                      <span>Preview</span>
+                      <span>Pratinjau</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(page)}
                       className="px-3 py-1.5 text-xs font-medium border border-red-200 text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer"
                     >
-                      Delete
+                      Hapus
                     </button>
                   </div>
                 </div>
@@ -643,11 +643,11 @@ export default function TemplatesPage() {
                       {previewPage.name}
                     </h2>
                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-100 text-muted">
-                      Preview
+                      Pratinjau
                     </span>
                   </div>
                   <p className="text-xs text-muted truncate max-w-xs sm:max-w-md">
-                    {previewPage.redirectUrl || "Simulated Landing Page"}
+                    {previewPage.redirectUrl || "Simulasi Landing Page"}
                   </p>
                 </div>
               </div>
@@ -662,7 +662,7 @@ export default function TemplatesPage() {
                     window.open(url, "_blank");
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-gray-100 transition-colors text-body cursor-pointer"
-                  title="Open in new tab"
+                  title="Buka di tab baru"
                 >
                   <ExternalLink size={14} />
                   <span className="hidden sm:inline">Buka Tab Baru</span>
@@ -671,7 +671,7 @@ export default function TemplatesPage() {
                   type="button"
                   onClick={() => setPreviewPage(null)}
                   className="p-1.5 text-gray-400 hover:text-foreground rounded-md hover:bg-gray-100 transition-colors cursor-pointer"
-                  aria-label="Close preview"
+                  aria-label="Tutup pratinjau"
                 >
                   <X size={20} />
                 </button>

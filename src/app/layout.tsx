@@ -11,7 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Red Team Simulation",
-  description: "Security Awareness Simulation Platform",
+  description: "Platform Simulasi Kesadaran Keamanan",
 };
 
 export default function RootLayout({
@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="id" className={`${inter.variable} h-full antialiased`}>
       <body className="h-full overflow-hidden">
         <AuthProvider>
           <AppShell>{children}</AppShell>

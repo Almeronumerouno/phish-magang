@@ -10,7 +10,7 @@ interface DataTableProps {
   emptyMessage?: string;
 }
 
-export function DataTable({ columns, data, emptyMessage = "No data available" }: DataTableProps) {
+export function DataTable({ columns, data, emptyMessage = "Tidak ada data tersedia" }: DataTableProps) {
   return (
     <div className="bg-card rounded-lg border border-border overflow-hidden">
       <div className="overflow-x-auto w-full">

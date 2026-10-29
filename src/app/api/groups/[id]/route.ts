@@ -21,13 +21,13 @@ export async function PUT(
     const { id } = await params;
     const groupId = parseInt(id, 10);
     if (!await ownedGroup(groupId, session.userId)) {
-      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+      return NextResponse.json({ error: "Grup target tidak ditemukan" }, { status: 404 });
     }
 
     const body = await req.json();
     const { name, members } = body;
     if (!name) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+      return NextResponse.json({ error: "Nama grup target wajib diisi" }, { status: 400 });
     }
     const rows: Array<{
       id?: number;
@@ -38,7 +38,7 @@ export async function PUT(
     }> = Array.isArray(members) ? members : [];
     for (const m of rows) {
       if (!m.email) {
-        return NextResponse.json({ error: "Each member needs an email" }, { status: 400 });
+        return NextResponse.json({ error: "Setiap anggota target wajib memiliki alamat email" }, { status: 400 });
       }
     }
 
@@ -112,7 +112,7 @@ export async function DELETE(
     const { id } = await params;
     const groupId = parseInt(id, 10);
     if (!await ownedGroup(groupId, session.userId)) {
-      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+      return NextResponse.json({ error: "Grup target tidak ditemukan" }, { status: 404 });
     }
 
     const doomed = await db.groupTarget.findMany({ where: { groupId }, select: { targetId: true } });

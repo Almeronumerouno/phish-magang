@@ -87,8 +87,8 @@ export async function GET(req: NextRequest) {
     return new NextResponse(
       `<!DOCTYPE html>
       <html>
-        <head><title>Phishing Report Received</title><meta name="viewport" content="width=device-width, initial-scale=1"/><style>body { font-family: -apple-system, sans-serif; background: #f4f6f8; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; } .c { background: #fff; padding: 32px; border-radius: 12px; max-width: 440px; text-align: center; border-top: 4px solid #10b981; box-shadow: 0 4px 12px rgba(0,0,0,0.08); } h2 { margin-top: 0; color: #111827; } p { color: #4b5563; font-size: 14px; line-height: 1.5; }</style></head>
-        <body><div class="c"><h2>Thank You For Reporting!</h2><p>You successfully identified this simulated phishing exercise. Your awareness keeps the organization safe.</p></div></body>
+        <head><title>Laporan Phishing Diterima</title><meta name="viewport" content="width=device-width, initial-scale=1"/><style>body { font-family: -apple-system, sans-serif; background: #f4f6f8; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; } .c { background: #fff; padding: 32px; border-radius: 12px; max-width: 440px; text-align: center; border-top: 4px solid #10b981; box-shadow: 0 4px 12px rgba(0,0,0,0.08); } h2 { margin-top: 0; color: #111827; } p { color: #4b5563; font-size: 14px; line-height: 1.5; }</style></head>
+        <body><div class="c"><h2>Terima Kasih Telah Melaporkan!</h2><p>Anda berhasil mengidentifikasi simulasi latihan phishing ini. Kesadaran keamanan Anda membantu menjaga organisasi tetap aman.</p></div></body>
       </html>`,
       { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
     );
@@ -138,7 +138,7 @@ export async function GET(req: NextRequest) {
   }
 
   return new NextResponse(
-    `<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:#e2e8f0;"><h2>Phishing Simulation Listener Active</h2><p>Target interactions with token parameters (?rid=...) are monitored in real time.</p></body></html>`,
+    `<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0f172a;color:#e2e8f0;"><h2>Listener Simulasi Phishing Aktif</h2><p>Interaksi target dengan parameter token (?rid=...) dipantau secara real-time.</p></body></html>`,
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
 }
@@ -221,7 +221,7 @@ export async function POST(req: NextRequest) {
   }
 
   return new NextResponse(
-    `<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#fef2f2;color:#991b1b;"><h2>Simulation Notice</h2><p>Credentials submitted to a security assessment exercise. Please contact your IT Security team for awareness guidance.</p></body></html>`,
+    `<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:50px;background:#fef2f2;color:#991b1b;"><h2>Pemberitahuan Simulasi</h2><p>Kredensial dikirimkan ke dalam simulasi latihan keamanan. Silakan hubungi tim Keamanan IT Anda untuk panduan kesadaran keamanan.</p></body></html>`,
     { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }
   );
 }

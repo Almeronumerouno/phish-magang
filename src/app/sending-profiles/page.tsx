@@ -148,7 +148,7 @@ export default function SendingProfilesPage() {
   // Copy Profile (GoPhish copy logic)
   const copyProfile = (profile: SendingProfile) => {
     setEditingId(null); // save as new profile
-    setFormName(`Copy of ${profile.name}`);
+    setFormName(`Salinan ${profile.name}`);
     setFormInterfaceType(profile.interface_type || "SMTP");
     setFormFromAddress(profile.from_address || "");
     setFormHost(profile.host || "");
@@ -193,11 +193,11 @@ export default function SendingProfilesPage() {
       return;
     }
     if (!formFromAddress.trim()) {
-      setModalError("SMTP From address wajib diisi.");
+      setModalError("Alamat pengirim (SMTP From) wajib diisi.");
       return;
     }
     if (!formHost.trim()) {
-      setModalError("SMTP Host wajib diisi.");
+      setModalError("Host SMTP wajib diisi.");
       return;
     }
 
@@ -227,14 +227,14 @@ export default function SendingProfilesPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.message || "Gagal menyimpan sending profile");
+        throw new Error(data?.message || "Gagal menyimpan profil pengiriman.");
       }
 
       setModalOpen(false);
-      showFlash(editingId ? "Profil berhasil diperbarui!" : "Profil berhasil ditambahkan!");
+      showFlash(editingId ? "Profil berhasil diperbarui." : "Profil berhasil disimpan.");
       fetchProfiles();
     } catch (err: any) {
-      setModalError(err.message || "Gagal menyimpan sending profile.");
+      setModalError(err.message || "Gagal menyimpan profil pengiriman.");
     } finally {
       setSaving(false);
     }
@@ -249,13 +249,13 @@ export default function SendingProfilesPage() {
         method: "DELETE",
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || "Gagal menghapus sending profile");
+      if (!res.ok) throw new Error(data?.message || "Gagal menghapus profil pengiriman");
 
-      showFlash("Profil pengiriman berhasil dihapus!");
+      showFlash("Profil pengiriman berhasil dihapus.");
       setDeleteConfirm(null);
       fetchProfiles();
     } catch (err: any) {
-      showFlash(err.message || "Gagal menghapus sending profile", "error");
+      showFlash(err.message || "Gagal menghapus profil pengiriman", "error");
     } finally {
       setDeleting(false);
     }
@@ -296,14 +296,14 @@ export default function SendingProfilesPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.message || "Gagal mengirim test email");
+        throw new Error(data?.message || "Gagal mengirim email uji coba");
       }
 
-      setTestFeedback({ type: "success", message: "Email tes berhasil dikirim!" });
+      setTestFeedback({ type: "success", message: "Email uji coba berhasil dikirim." });
     } catch (err: any) {
       setTestFeedback({
         type: "error",
-        message: err.message || "Gagal mengirim test email",
+        message: err.message || "Gagal mengirim email uji coba",
       });
     } finally {
       setSendingTest(false);
@@ -338,7 +338,7 @@ export default function SendingProfilesPage() {
 
         <div className="flex items-center gap-2.5">
           <div className="hidden sm:flex items-center gap-2 text-xs text-muted bg-gray-50 border border-border px-3 py-1.5 rounded-md">
-            <span className="font-semibold text-foreground">{profiles.length}</span> Profiles Configured
+            <span className="font-semibold text-foreground">{profiles.length}</span> Profil Dikonfigurasi
           </div>
 
           <button
@@ -347,7 +347,7 @@ export default function SendingProfilesPage() {
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-all shadow-xs cursor-pointer w-full sm:w-auto"
           >
             <Plus size={14} strokeWidth={2.5} />
-            <span>New Profile</span>
+            <span>Profil Baru</span>
           </button>
         </div>
       </div>
@@ -387,14 +387,14 @@ export default function SendingProfilesPage() {
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
-              placeholder="Search profiles..."
+              placeholder="Cari profil..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <span className="text-xs text-muted shrink-0">
-            {filteredProfiles.length} {filteredProfiles.length === 1 ? "profile" : "profiles"}
+            {filteredProfiles.length} profil
           </span>
         </div>
 
@@ -402,12 +402,12 @@ export default function SendingProfilesPage() {
           <table className="w-full min-w-[750px] text-left text-xs">
             <thead>
               <tr className="border-b border-border bg-gray-50 font-semibold text-muted uppercase tracking-wider text-[11px]">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Interface Type</th>
-                <th className="px-4 py-3">From Address</th>
+                <th className="px-4 py-3">Nama</th>
+                <th className="px-4 py-3">Tipe Interface</th>
+                <th className="px-4 py-3">Alamat Pengirim</th>
                 <th className="px-4 py-3">Host</th>
-                <th className="px-4 py-3">Last Modified Date</th>
-                <th className="px-4 py-3 text-right w-32">Actions</th>
+                <th className="px-4 py-3">Terakhir Diubah</th>
+                <th className="px-4 py-3 text-right w-32">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -415,14 +415,14 @@ export default function SendingProfilesPage() {
                 <tr>
                   <td colSpan={6} className="px-4 py-10 text-center text-muted">
                     <Loader2 size={24} className="animate-spin text-muted mx-auto mb-2" />
-                    <span>Loading profiles...</span>
+                    <span>Memuat profil...</span>
                   </td>
                 </tr>
               ) : profiles.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-8 text-center">
                     <div className="p-4 bg-blue-50/60 border border-blue-200 text-blue-900 rounded-md max-w-md mx-auto text-xs">
-                      Belum ada sending profile yang dibuat. Klik <b>New Profile</b> di atas untuk membuat profil baru!
+                      Belum ada sending profile yang terdaftar.
                     </div>
                   </td>
                 </tr>
@@ -478,7 +478,7 @@ export default function SendingProfilesPage() {
                             type="button"
                             onClick={() => openEditModal(profile)}
                             className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded border border-transparent hover:border-blue-200 transition-colors cursor-pointer"
-                            title="Edit Profile"
+                            title="Edit Profil"
                           >
                             <Pencil size={13} />
                           </button>
@@ -486,7 +486,7 @@ export default function SendingProfilesPage() {
                             type="button"
                             onClick={() => copyProfile(profile)}
                             className="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded border border-transparent hover:border-emerald-200 transition-colors cursor-pointer"
-                            title="Copy Profile"
+                            title="Salin Profil"
                           >
                             <Copy size={13} />
                           </button>
@@ -494,7 +494,7 @@ export default function SendingProfilesPage() {
                             type="button"
                             onClick={() => setDeleteConfirm(profile)}
                             className="p-1.5 text-slate-600 hover:text-red-700 hover:bg-red-50 rounded border border-transparent hover:border-red-200 transition-colors cursor-pointer"
-                            title="Delete Profile"
+                            title="Hapus Profil"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -521,7 +521,7 @@ export default function SendingProfilesPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-foreground">
-                    {editingId ? "Edit Sending Profile" : "New Sending Profile"}
+                    {editingId ? "Edit Sending Profile" : "Sending Profile Baru"}
                   </h3>
                   <p className="text-[11px] text-muted">
                     {editingId
@@ -553,12 +553,12 @@ export default function SendingProfilesPage() {
                 {/* Name */}
                 <div className="space-y-1">
                   <label className="font-semibold text-foreground block">
-                    Name:
+                    Nama:
                   </label>
                   <input
                     type="text"
                     autoFocus
-                    placeholder="Profile name"
+                    placeholder="Nama profil"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     className="w-full px-3 py-2 text-sm border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -568,7 +568,7 @@ export default function SendingProfilesPage() {
                 {/* Interface Type (Disabled SMTP) */}
                 <div className="space-y-1">
                   <label className="font-semibold text-foreground block">
-                    Interface Type:
+                    Tipe Interface:
                   </label>
                   <input
                     type="text"
@@ -660,7 +660,7 @@ export default function SendingProfilesPage() {
                       className="w-4 h-4 rounded text-blue-600 border-border focus:ring-blue-500"
                     />
                     <span className="font-semibold text-foreground text-xs flex items-center gap-1.5">
-                      Ignore Certificate Errors
+                      Abaikan Error Sertifikat (Ignore Certificate Errors)
                       <span
                         className="text-muted hover:text-blue-600 cursor-pointer"
                         title="Abaikan error sertifikat umum seperti self-signed certs (berisiko terhadap serangan Man-in-the-Middle / MiTM - gunakan dengan hati-hati!)"
@@ -674,7 +674,7 @@ export default function SendingProfilesPage() {
                 {/* Email Headers Section (GoPhish Style) */}
                 <div className="pt-3 border-t border-border space-y-2.5">
                   <label className="font-semibold text-foreground block text-xs">
-                    Email Headers:
+                    Header Email:
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                     <div className="sm:col-span-5">
@@ -702,7 +702,7 @@ export default function SendingProfilesPage() {
                         className="w-full py-1.5 px-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-medium text-[11px] flex items-center justify-center gap-1 shadow-2xs transition-colors cursor-pointer"
                       >
                         <Plus size={13} />
-                        <span>Add</span>
+                        <span>Tambah</span>
                       </button>
                     </div>
                   </div>
@@ -713,7 +713,7 @@ export default function SendingProfilesPage() {
                       <thead className="bg-gray-50 border-b border-border font-semibold text-muted uppercase text-[10px] tracking-wider">
                         <tr>
                           <th className="px-3 py-2 w-5/12">Header</th>
-                          <th className="px-3 py-2 w-6/12">Value</th>
+                          <th className="px-3 py-2 w-6/12">Nilai</th>
                           <th className="px-3 py-2 w-1/12 text-center"></th>
                         </tr>
                       </thead>
@@ -721,7 +721,7 @@ export default function SendingProfilesPage() {
                         {formHeaders.length === 0 ? (
                           <tr>
                             <td colSpan={3} className="p-4 text-center text-muted text-[11px]">
-                              Belum ada custom email headers yang ditambahkan.
+                              Belum ada custom header email yang ditambahkan.
                             </td>
                           </tr>
                         ) : (
@@ -738,7 +738,7 @@ export default function SendingProfilesPage() {
                                   type="button"
                                   onClick={() => handleRemoveHeader(idx)}
                                   className="text-muted hover:text-red-600 p-1 rounded transition-colors cursor-pointer"
-                                  title="Remove header"
+                                  title="Hapus header"
                                 >
                                   <Trash2 size={13} />
                                 </button>
@@ -762,7 +762,7 @@ export default function SendingProfilesPage() {
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors shadow-2xs text-xs cursor-pointer"
                   >
                     <Mail size={13} />
-                    <span>Send Test Email</span>
+                    <span>Kirim Email Uji Coba</span>
                   </button>
                 </div>
               </div>
@@ -775,7 +775,7 @@ export default function SendingProfilesPage() {
                 onClick={() => setModalOpen(false)}
                 className="px-4 py-2 text-xs font-medium border border-border bg-white rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -784,7 +784,7 @@ export default function SendingProfilesPage() {
                 className="px-4 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-1.5 shadow-2xs disabled:opacity-50 cursor-pointer"
               >
                 {saving && <Loader2 size={13} className="animate-spin" />}
-                <span>{saving ? "Saving..." : "Save Profile"}</span>
+                <span>{saving ? "Menyimpan..." : "Simpan Profil"}</span>
               </button>
             </div>
           </div>
@@ -802,7 +802,7 @@ export default function SendingProfilesPage() {
                   <Mail size={16} />
                 </div>
                 <h3 className="text-sm font-bold text-foreground">
-                  Send Test Email
+                  Kirim Email Uji Coba
                 </h3>
               </div>
               <button
@@ -836,14 +836,14 @@ export default function SendingProfilesPage() {
                 )}
 
                 <p className="font-semibold text-foreground">
-                  Send Test Email to:
+                  Kirim Email Uji Coba ke:
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                   <div className="sm:col-span-3">
                     <input
                       type="text"
-                      placeholder="First Name"
+                      placeholder="Nama Depan"
                       value={testFirstName}
                       onChange={(e) => setTestFirstName(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
@@ -852,7 +852,7 @@ export default function SendingProfilesPage() {
                   <div className="sm:col-span-3">
                     <input
                       type="text"
-                      placeholder="Last Name"
+                      placeholder="Nama Belakang"
                       value={testLastName}
                       onChange={(e) => setTestLastName(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
@@ -871,7 +871,7 @@ export default function SendingProfilesPage() {
                   <div className="sm:col-span-3">
                     <input
                       type="text"
-                      placeholder="Position"
+                      placeholder="Jabatan"
                       value={testPosition}
                       onChange={(e) => setTestPosition(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
@@ -880,7 +880,7 @@ export default function SendingProfilesPage() {
                 </div>
 
                 <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-md text-[11px] text-blue-900 leading-relaxed">
-                  Test email akan dikirim menggunakan kredensial host <code>{formHost || "smtp.example.com"}</code> dan pengirim <code>{formFromAddress || "noreply"}</code> yang sedang dikonfigurasi pada form di atas.
+                  Email uji coba akan dikirim menggunakan kredensial host <code>{formHost || "smtp.example.com"}</code> dan pengirim <code>{formFromAddress || "noreply"}</code> yang sedang dikonfigurasi pada formulir di atas.
                 </div>
               </div>
 
@@ -891,7 +891,7 @@ export default function SendingProfilesPage() {
                   onClick={() => setTestModalOpen(false)}
                   className="px-4 py-2 text-xs font-medium border border-border bg-white rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
@@ -903,7 +903,7 @@ export default function SendingProfilesPage() {
                   ) : (
                     <Send size={13} />
                   )}
-                  <span>{sendingTest ? "Sending..." : "Send"}</span>
+                  <span>{sendingTest ? "Mengirim..." : "Kirim"}</span>
                 </button>
               </div>
             </form>
@@ -918,7 +918,7 @@ export default function SendingProfilesPage() {
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-red-600 font-bold text-sm">
                 <ShieldAlert size={18} />
-                <span>Are you sure?</span>
+                <span>Apakah Anda yakin?</span>
               </div>
               <p className="text-xs text-muted leading-relaxed">
                 Profil pengiriman &quot;<b>{deleteConfirm.name}</b>&quot; akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan!
@@ -931,7 +931,7 @@ export default function SendingProfilesPage() {
                 onClick={() => setDeleteConfirm(null)}
                 className="px-3.5 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -939,7 +939,7 @@ export default function SendingProfilesPage() {
                 disabled={deleting}
                 className="px-3.5 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
               >
-                {deleting ? "Deleting..." : `Delete ${deleteConfirm.name}`}
+                {deleting ? "Menghapus..." : `Hapus ${deleteConfirm.name}`}
               </button>
             </div>
           </div>

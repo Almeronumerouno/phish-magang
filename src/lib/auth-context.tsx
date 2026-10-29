@@ -53,7 +53,7 @@ function clearLegacyStorage(): void {
 
 async function throwIfError(res: Response): Promise<void> {
   if (res.ok) return;
-  let message = "Request failed. Please try again.";
+  let message = "Permintaan gagal. Silakan coba lagi.";
   try {
     const data = await res.json();
     if (typeof data?.error === "string" && data.error) message = data.error;

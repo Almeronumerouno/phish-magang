@@ -29,9 +29,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const session = getSession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const id = parseInt((await params).id, 10);
-  if (!Number.isInteger(id)) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!Number.isInteger(id)) return NextResponse.json({ error: "Landing page tidak ditemukan." }, { status: 404 });
   const page = await findOwned(id, session.userId);
-  if (!page) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!page) return NextResponse.json({ error: "Landing page tidak ditemukan." }, { status: 404 });
   return NextResponse.json({
     id: page.id,
     name: page.name,
@@ -47,12 +47,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const session = getSession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const id = parseInt((await params).id, 10);
-  if (!Number.isInteger(id)) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!Number.isInteger(id)) return NextResponse.json({ error: "Landing page tidak ditemukan." }, { status: 404 });
   const existing = await findOwned(id, session.userId);
-  if (!existing) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Landing page tidak ditemukan." }, { status: 404 });
 
   const body = await req.json().catch(() => null);
-  if (!body || typeof body !== "object") return NextResponse.json({ error: "Invalid body." }, { status: 400 });
+  if (!body || typeof body !== "object") return NextResponse.json({ error: "Format permintaan tidak valid." }, { status: 400 });
   const data: {
     name?: string;
     html?: string;
@@ -63,12 +63,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   if ("name" in body) {
     const name = typeof body.name === "string" ? body.name.trim() : "";
-    if (!name) return NextResponse.json({ error: "Page name is required." }, { status: 400 });
+    if (!name) return NextResponse.json({ error: "Nama landing page wajib diisi." }, { status: 400 });
     data.name = name;
   }
   if ("html" in body) {
     if (typeof body.html !== "string" || !body.html.trim())
-      return NextResponse.json({ error: "HTML content is required." }, { status: 400 });
+      return NextResponse.json({ error: "Konten HTML wajib diisi." }, { status: 400 });
     data.html = body.html;
   }
   if ("captureCredentials" in body) data.captureCredentials = body.captureCredentials === true;
@@ -92,9 +92,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const session = getSession(req);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const id = parseInt((await params).id, 10);
-  if (!Number.isInteger(id)) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!Number.isInteger(id)) return NextResponse.json({ error: "Landing page tidak ditemukan." }, { status: 404 });
   const existing = await findOwned(id, session.userId);
-  if (!existing) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!existing) return NextResponse.json({ error: "Landing page tidak ditemukan." }, { status: 404 });
   await db.campaign.updateMany({ where: { pageId: id }, data: { pageId: null } });
   await db.landingPage.delete({ where: { id } });
   return NextResponse.json({ success: true });

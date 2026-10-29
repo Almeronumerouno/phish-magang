@@ -21,7 +21,7 @@ function AuthLoading() {
     <div className="flex h-full w-full items-center justify-center bg-background">
       <div
         className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-foreground"
-        aria-label="Loading"
+        aria-label="Memuat..."
       />
     </div>
   );
@@ -88,7 +88,7 @@ export function AppShell({ children }: AppShellProps) {
             type="button"
             onClick={() => setIsMobileMenuOpen(true)}
             className="p-1.5 -ml-1 text-foreground hover:bg-black/5 rounded-md cursor-pointer"
-            aria-label="Open navigation menu"
+            aria-label="Buka menu navigasi"
           >
             <Menu size={20} strokeWidth={2} />
           </button>

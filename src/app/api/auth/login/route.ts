@@ -11,19 +11,19 @@ export async function POST(req: Request) {
 
   if (!username) {
     return NextResponse.json(
-      { error: "Please enter a username." },
+      { error: "Silakan masukkan username." },
       { status: 400 },
     );
   }
   if (!/^[a-z0-9._@-]{3,64}$/.test(username)) {
     return NextResponse.json(
-      { error: "Username must be 3-64 characters (letters, numbers, . _ - @)." },
+      { error: "Username harus 3-64 karakter (huruf, angka, . _ - @)." },
       { status: 400 },
     );
   }
   if (!password) {
     return NextResponse.json(
-      { error: "Password is required." },
+      { error: "Password wajib diisi." },
       { status: 400 },
     );
   }
@@ -31,13 +31,13 @@ export async function POST(req: Request) {
   const user = await db.user.findUnique({ where: { username } });
   if (!user || !(await bcrypt.compare(password, user.hash))) {
     return NextResponse.json(
-      { error: "Incorrect username or password." },
+      { error: "Username atau password salah." },
       { status: 401 },
     );
   }
   if (user.accountLocked) {
     return NextResponse.json(
-      { error: "Account is locked." },
+      { error: "Akun terkunci." },
       { status: 403 },
     );
   }

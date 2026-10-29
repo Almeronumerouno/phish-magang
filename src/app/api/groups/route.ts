@@ -37,11 +37,11 @@ export async function POST(req: Request) {
     const { name, members } = body;
 
     if (!name) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+      return NextResponse.json({ error: "Nama grup target wajib diisi" }, { status: 400 });
     }
 
     if (members !== undefined && !Array.isArray(members)) {
-      return NextResponse.json({ error: "Members must be an array" }, { status: 400 });
+      return NextResponse.json({ error: "Daftar anggota harus berupa array" }, { status: 400 });
     }
 
     const rows: Array<{
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
     for (const m of rows) {
       if (!m.email || typeof m.email !== "string") {
-        return NextResponse.json({ error: "Each member needs an email" }, { status: 400 });
+        return NextResponse.json({ error: "Setiap anggota target wajib memiliki alamat email" }, { status: 400 });
       }
     }
 

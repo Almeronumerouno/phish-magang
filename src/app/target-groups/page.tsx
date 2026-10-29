@@ -107,7 +107,7 @@ export default function TargetGroupsPage() {
       }
     } catch (err) {
       console.error("Failed to fetch groups", err);
-      showFlash("Gagal memuat groups", "error");
+      showFlash("Gagal memuat grup target.", "error");
     } finally {
       setLoading(false);
     }
@@ -236,7 +236,7 @@ export default function TargetGroupsPage() {
         return Array.from(map.values());
       });
 
-      showFlash(`Berhasil mengimpor ${parsed.length} target dari CSV!`);
+      showFlash(`Berhasil mengimpor ${parsed.length} target dari berkas CSV.`);
     } catch {
       setModalError("Gagal membaca file CSV.");
     } finally {
@@ -264,7 +264,7 @@ export default function TargetGroupsPage() {
       if (!res.ok) throw new Error("Gagal mengambil target");
       const list = await res.json();
       if (!list || list.length === 0) {
-        showFlash(`Group "${group.name}" belum memiliki target untuk diekspor.`, "error");
+        showFlash(`Grup "${group.name}" belum memiliki target untuk diekspor.`, "error");
         return;
       }
       const header = "First Name,Last Name,Email,Position\n";
@@ -279,9 +279,9 @@ export default function TargetGroupsPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      showFlash(`Berhasil mengekspor ${list.length} target dari group "${group.name}"!`);
+      showFlash(`Berhasil mengekspor ${list.length} target dari grup "${group.name}".`);
     } catch {
-      showFlash("Gagal mengekspor data group", "error");
+      showFlash("Gagal mengekspor data grup", "error");
     }
   };
 
@@ -303,7 +303,7 @@ export default function TargetGroupsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showFlash(`Berhasil mengekspor ${targets.length} target!`);
+    showFlash(`Berhasil mengekspor ${targets.length} target.`);
   };
 
   // Modern Differentiator: Copy all emails to clipboard
@@ -313,7 +313,7 @@ export default function TargetGroupsPage() {
     navigator.clipboard.writeText(emails);
     setCopiedEmails(true);
     setTimeout(() => setCopiedEmails(false), 2000);
-    showFlash(`Disalin ${targets.length} alamat email ke clipboard!`);
+    showFlash(`${targets.length} alamat email berhasil disalin.`);
   };
 
   const getInitials = (t: Target) => {
@@ -327,7 +327,7 @@ export default function TargetGroupsPage() {
 
   const handleSaveGroup = async () => {
     if (!groupName.trim()) {
-      setModalError("Nama group wajib diisi.");
+      setModalError("Nama grup wajib diisi.");
       return;
     }
     setSaving(true);
@@ -353,14 +353,14 @@ export default function TargetGroupsPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => null);
-        throw new Error(err?.error || "Gagal menyimpan group");
+        throw new Error(err?.error || "Gagal menyimpan grup target.");
       }
 
       setModalOpen(false);
-      showFlash(editingId ? "Group updated successfully!" : "Group added successfully!");
+      showFlash(editingId ? "Grup target berhasil diperbarui." : "Grup target berhasil disimpan.");
       fetchGroups();
     } catch (err: any) {
-      setModalError(err.message || "Gagal menyimpan group.");
+      setModalError(err.message || "Gagal menyimpan grup target.");
     } finally {
       setSaving(false);
     }
@@ -371,12 +371,12 @@ export default function TargetGroupsPage() {
     setDeleting(true);
     try {
       const res = await fetch(`/api/groups/${deleteConfirm.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Gagal menghapus group");
-      showFlash("Group deleted successfully!");
+      if (!res.ok) throw new Error("Gagal menghapus grup target");
+      showFlash("Grup target berhasil dihapus.");
       setDeleteConfirm(null);
       fetchGroups();
     } catch {
-      showFlash("Gagal menghapus group", "error");
+      showFlash("Gagal menghapus grup target", "error");
     } finally {
       setDeleting(false);
     }
@@ -423,9 +423,9 @@ export default function TargetGroupsPage() {
 
         <div className="flex items-center gap-2.5">
           <div className="hidden sm:flex items-center gap-2 text-xs text-muted bg-gray-50 border border-border px-3 py-1.5 rounded-md">
-            <span className="font-semibold text-foreground">{groups.length}</span> Groups
+            <span className="font-semibold text-foreground">{groups.length}</span> Grup
             <span className="text-gray-300">•</span>
-            <span className="font-semibold text-foreground">{totalTargetsAcrossGroups}</span> Targets Total
+            <span>Total <span className="font-semibold text-foreground">{totalTargetsAcrossGroups}</span> Target</span>
           </div>
 
           <button
@@ -434,7 +434,7 @@ export default function TargetGroupsPage() {
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-md transition-all shadow-xs cursor-pointer w-full sm:w-auto"
           >
             <Plus size={14} strokeWidth={2.5} />
-            <span>New Group</span>
+            <span>Grup Baru</span>
           </button>
         </div>
       </div>
@@ -467,14 +467,14 @@ export default function TargetGroupsPage() {
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
-              placeholder="Search groups..."
+              placeholder="Cari grup..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <span className="text-xs text-muted shrink-0">
-            {filteredGroups.length} {filteredGroups.length === 1 ? "group" : "groups"}
+            {filteredGroups.length} grup
           </span>
         </div>
 
@@ -482,10 +482,10 @@ export default function TargetGroupsPage() {
           <table className="w-full min-w-[650px] text-left text-xs">
             <thead>
               <tr className="border-b border-border bg-gray-50 font-semibold text-muted uppercase tracking-wider text-[11px]">
-                <th className="px-4 py-3">Group Name</th>
-                <th className="px-4 py-3"># of Members</th>
-                <th className="px-4 py-3">Modified Date</th>
-                <th className="px-4 py-3 text-right w-36">Actions</th>
+                <th className="px-4 py-3">Nama Grup</th>
+                <th className="px-4 py-3">Jumlah Anggota</th>
+                <th className="px-4 py-3">Tanggal Diubah</th>
+                <th className="px-4 py-3 text-right w-36">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -493,27 +493,27 @@ export default function TargetGroupsPage() {
                 <tr>
                   <td colSpan={4} className="px-4 py-10 text-center text-muted">
                     <Loader2 size={24} className="animate-spin text-muted mx-auto mb-2" />
-                    <span>Loading groups...</span>
+                    <span>Memuat grup...</span>
                   </td>
                 </tr>
               ) : groups.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-8 text-center">
                     <div className="p-4 bg-blue-50/60 border border-blue-200 text-blue-900 rounded-md max-w-md mx-auto text-xs">
-                      Belum ada group yang dibuat. Klik <b>New Group</b> di atas untuk membuat group baru!
+                      Belum ada target group yang terdaftar.
                     </div>
                   </td>
                 </tr>
               ) : filteredGroups.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 text-center text-muted">
-                    Tidak ada group yang cocok dengan &quot;{searchQuery}&quot;
+                    Tidak ada grup yang cocok dengan &quot;{searchQuery}&quot;
                   </td>
                 </tr>
               ) : (
                 filteredGroups.map((group) => {
                   const count = group._count?.targets ?? 0;
-                  const dateStr = new Date(group.modifiedDate).toLocaleDateString("en-US", {
+                  const dateStr = new Date(group.modifiedDate).toLocaleDateString("id-ID", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
@@ -539,7 +539,7 @@ export default function TargetGroupsPage() {
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200/80">
                           <Users size={11} className="text-slate-500" />
                           <span className="font-semibold font-mono text-foreground">{count}</span>
-                          <span className="text-muted text-[10px]">{count === 1 ? "member" : "members"}</span>
+                          <span className="text-muted text-[10px]">anggota</span>
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted">
@@ -554,7 +554,7 @@ export default function TargetGroupsPage() {
                             type="button"
                             onClick={() => exportGroupCsv(group)}
                             className="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded border border-transparent hover:border-emerald-200 transition-colors"
-                            title="Export to CSV"
+                            title="Ekspor ke CSV"
                           >
                             <Download size={13} />
                           </button>
@@ -562,7 +562,7 @@ export default function TargetGroupsPage() {
                             type="button"
                             onClick={() => openEditModal(group)}
                             className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded border border-transparent hover:border-blue-200 transition-colors"
-                            title="Edit Group"
+                            title="Edit Grup"
                           >
                             <Pencil size={13} />
                           </button>
@@ -570,7 +570,7 @@ export default function TargetGroupsPage() {
                             type="button"
                             onClick={() => setDeleteConfirm(group)}
                             className="p-1.5 text-slate-600 hover:text-red-700 hover:bg-red-50 rounded border border-transparent hover:border-red-200 transition-colors"
-                            title="Delete Group"
+                            title="Hapus Grup"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -597,10 +597,10 @@ export default function TargetGroupsPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-foreground">
-                    {editingId ? "Edit Group" : "New Group"}
+                    {editingId ? "Edit Grup" : "Grup Baru"}
                   </h3>
                   <p className="text-[11px] text-muted">
-                    {editingId ? "Perbarui pengaturan dan anggota target untuk grup ini" : "Konfigurasi daftar target dan import anggota penerima"}
+                    {editingId ? "Perbarui pengaturan dan anggota target untuk grup ini" : "Konfigurasi daftar target dan impor anggota penerima"}
                   </p>
                 </div>
               </div>
@@ -624,12 +624,12 @@ export default function TargetGroupsPage() {
               {/* Name Input */}
               <div className="space-y-1">
                 <label className="font-semibold text-foreground block">
-                  Name:
+                  Nama:
                 </label>
                 <input
                   type="text"
                   autoFocus
-                  placeholder="e.g. Finance Department, Executive Board"
+                  placeholder="cth. Departemen Keuangan, Direksi"
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -640,7 +640,7 @@ export default function TargetGroupsPage() {
               <div className="flex items-center gap-2 pt-1 flex-wrap">
                 <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-black text-white font-medium rounded-md cursor-pointer transition-colors shadow-2xs text-xs">
                   <Upload size={13} />
-                  <span>Bulk Import Users</span>
+                  <span>Impor Massal Target</span>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -656,7 +656,7 @@ export default function TargetGroupsPage() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border bg-white hover:bg-gray-50 text-foreground rounded-md transition-colors text-xs font-medium cursor-pointer"
                 >
                   <FileSpreadsheet size={13} className="text-emerald-600" />
-                  <span>Download CSV Template</span>
+                  <span>Unduh Template CSV</span>
                 </button>
 
                 {targets.length > 0 && (
@@ -664,10 +664,10 @@ export default function TargetGroupsPage() {
                     type="button"
                     onClick={exportCurrentTargetsCsv}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-border bg-white hover:bg-gray-50 text-foreground rounded-md transition-colors text-xs font-medium ml-auto cursor-pointer"
-                    title="Export current targets to CSV"
+                    title="Ekspor target saat ini ke CSV"
                   >
                     <Download size={13} className="text-blue-600" />
-                    <span>Export CSV ({targets.length})</span>
+                    <span>Ekspor CSV ({targets.length})</span>
                   </button>
                 )}
               </div>
@@ -677,7 +677,7 @@ export default function TargetGroupsPage() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[11px] text-muted font-medium flex items-center gap-1">
                     <UserPlus size={12} className="text-blue-600" />
-                    <span>Add Member Manually:</span>
+                    <span>Tambah Anggota Manual:</span>
                   </p>
                 </div>
 
@@ -688,7 +688,7 @@ export default function TargetGroupsPage() {
                   <div className="sm:col-span-3">
                     <input
                       type="text"
-                      placeholder="First Name"
+                      placeholder="Nama Depan"
                       value={inputFirst}
                       onChange={(e) => setInputFirst(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
@@ -697,7 +697,7 @@ export default function TargetGroupsPage() {
                   <div className="sm:col-span-3">
                     <input
                       type="text"
-                      placeholder="Last Name"
+                      placeholder="Nama Belakang"
                       value={inputLast}
                       onChange={(e) => setInputLast(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
@@ -716,7 +716,7 @@ export default function TargetGroupsPage() {
                   <div className="sm:col-span-2">
                     <input
                       type="text"
-                      placeholder="Position"
+                      placeholder="Jabatan"
                       value={inputPosition}
                       onChange={(e) => setInputPosition(e.target.value)}
                       className="w-full px-2.5 py-1.5 border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs"
@@ -726,10 +726,10 @@ export default function TargetGroupsPage() {
                     <button
                       type="submit"
                       className="w-full py-1.5 px-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium flex items-center justify-center gap-1 shadow-2xs transition-colors cursor-pointer"
-                      title="Add member"
+                      title="Tambah anggota"
                     >
                       <Plus size={14} />
-                      <span className="sm:hidden">Add</span>
+                      <span className="sm:hidden">Tambah</span>
                     </button>
                   </div>
                 </form>
@@ -744,14 +744,14 @@ export default function TargetGroupsPage() {
                       <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
                       <input
                         type="text"
-                        placeholder="Filter members..."
+                        placeholder="Filter anggota..."
                         value={modalSearch}
                         onChange={(e) => setModalSearch(e.target.value)}
                         className="w-full pl-7 pr-3 py-1 text-xs border border-border rounded bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
                     <span className="text-[11px] text-muted shrink-0">
-                      {filteredModalTargets.length} of {targets.length} members
+                      {filteredModalTargets.length} dari {targets.length} anggota
                     </span>
                   </div>
                 )}
@@ -760,9 +760,9 @@ export default function TargetGroupsPage() {
                   <table className="w-full text-left text-xs">
                     <thead className="bg-gray-50 border-b border-border sticky top-0 font-semibold text-muted uppercase text-[10px] tracking-wider">
                       <tr>
-                        <th className="px-3 py-2">Member</th>
+                        <th className="px-3 py-2">Anggota</th>
                         <th className="px-3 py-2">Email</th>
-                        <th className="px-3 py-2">Position</th>
+                        <th className="px-3 py-2">Jabatan</th>
                         <th className="px-3 py-2 w-10 text-center"></th>
                       </tr>
                     </thead>
@@ -771,13 +771,13 @@ export default function TargetGroupsPage() {
                         <tr>
                           <td colSpan={4} className="p-6 text-center text-muted">
                             <Loader2 size={18} className="animate-spin text-muted mx-auto mb-1.5" />
-                            <span>Loading targets...</span>
+                            <span>Memuat target...</span>
                           </td>
                         </tr>
                       ) : targets.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="p-6 text-center text-muted">
-                            Belum ada target yang ditambahkan. Gunakan form di atas atau bulk import via CSV.
+                            Belum ada target yang terdaftar dalam grup ini.
                           </td>
                         </tr>
                       ) : filteredModalTargets.length === 0 ? (
@@ -821,7 +821,7 @@ export default function TargetGroupsPage() {
                                   type="button"
                                   onClick={() => handleRemoveTarget(idx)}
                                   className="text-muted hover:text-red-600 p-1 rounded transition-colors"
-                                  title="Remove member"
+                                  title="Hapus anggota"
                                 >
                                   <Trash2 size={13} />
                                 </button>
@@ -839,11 +839,11 @@ export default function TargetGroupsPage() {
                 <div className="text-[11px] text-muted flex items-center justify-between pt-1 flex-wrap gap-2">
                   <div className="flex items-center gap-3">
                     <span>
-                      Total: <b className="text-foreground">{targets.length}</b> targets
+                      Total: <b className="text-foreground">{targets.length}</b> target
                     </span>
                     {uniqueDomains.length > 0 && (
                       <span className="text-slate-500">
-                        ({uniqueDomains.length} domain{uniqueDomains.length > 1 ? "s" : ""}: @{uniqueDomains.slice(0, 2).join(", @")}{uniqueDomains.length > 2 ? "..." : ""})
+                        ({uniqueDomains.length} domain: @{uniqueDomains.slice(0, 2).join(", @")}{uniqueDomains.length > 2 ? "..." : ""})
                       </span>
                     )}
                   </div>
@@ -854,14 +854,14 @@ export default function TargetGroupsPage() {
                       className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
                     >
                       {copiedEmails ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
-                      <span>{copiedEmails ? "Copied!" : "Copy all emails"}</span>
+                      <span>{copiedEmails ? "Tersalin" : "Salin semua email"}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setTargets([])}
                       className="text-red-600 hover:text-red-700 hover:underline cursor-pointer"
                     >
-                      Clear all targets
+                      Kosongkan semua target
                     </button>
                   </div>
                 </div>
@@ -875,7 +875,7 @@ export default function TargetGroupsPage() {
                 onClick={() => setModalOpen(false)}
                 className="px-4 py-2 text-xs font-medium border border-border bg-white rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                Close
+                Batal
               </button>
               <button
                 type="button"
@@ -884,7 +884,7 @@ export default function TargetGroupsPage() {
                 className="px-4 py-2 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors flex items-center gap-1.5 shadow-2xs disabled:opacity-50 cursor-pointer"
               >
                 {saving && <Loader2 size={13} className="animate-spin" />}
-                <span>{saving ? "Saving..." : "Save changes"}</span>
+                <span>{saving ? "Menyimpan..." : "Simpan Perubahan"}</span>
               </button>
             </div>
           </div>
@@ -897,10 +897,10 @@ export default function TargetGroupsPage() {
           <div className="bg-card border border-border rounded-lg w-full max-w-sm shadow-2xl p-5 space-y-4 animate-in zoom-in-95 duration-150">
             <div className="space-y-1.5">
               <h3 className="text-sm font-bold text-foreground">
-                Delete &quot;{deleteConfirm.name}&quot;?
+                Hapus &quot;{deleteConfirm.name}&quot;?
               </h3>
               <p className="text-xs text-muted leading-relaxed">
-                This will delete the target group. All simulation configurations tied to this group may be affected.
+                Tindakan ini akan menghapus grup target. Seluruh konfigurasi simulasi yang terhubung dengan grup ini dapat terpengaruh.
               </p>
             </div>
 
@@ -910,7 +910,7 @@ export default function TargetGroupsPage() {
                 onClick={() => setDeleteConfirm(null)}
                 className="px-3.5 py-1.5 text-xs font-medium border border-border rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -918,7 +918,7 @@ export default function TargetGroupsPage() {
                 disabled={deleting}
                 className="px-3.5 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
               >
-                {deleting ? "Deleting..." : "Delete Group"}
+                {deleting ? "Menghapus..." : "Hapus Grup"}
               </button>
             </div>
           </div>

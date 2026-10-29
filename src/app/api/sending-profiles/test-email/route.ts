@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const position = (body.position || body.to_position || "").trim();
 
     if (!toEmail) {
-      return NextResponse.json({ message: "No recipient email address specified", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Alamat email penerima belum ditentukan", success: false }, { status: 400 });
     }
 
     const smtp = body.smtp || {};
@@ -28,10 +28,10 @@ export async function POST(req: NextRequest) {
     const headersList: { key: string; value: string }[] = Array.isArray(smtp.headers) ? smtp.headers : [];
 
     if (!fromAddress) {
-      return NextResponse.json({ message: "No From Address specified in SMTP configuration", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Alamat pengirim (From Address) belum ditentukan dalam konfigurasi SMTP", success: false }, { status: 400 });
     }
     if (!rawHost) {
-      return NextResponse.json({ message: "No SMTP Host specified", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Host SMTP belum ditentukan", success: false }, { status: 400 });
     }
 
     // Parse host and port (default port: 25)
@@ -61,23 +61,23 @@ export async function POST(req: NextRequest) {
     });
 
     const recipientName = [firstName, lastName].filter(Boolean).join(" ");
-    const textBody = `Hello ${recipientName || "Recipient"},\n\nThis is a test email sent from Red Team Simulation to verify your SMTP sending profile configuration.\n\nConfiguration details:\n- Host: ${host}:${port}\n- From: ${fromAddress}\n- Position: ${position || "-"}\n\nIf you received this message, your sending profile is working correctly!`;
+    const textBody = `Halo ${recipientName || "Penerima"},\n\nIni adalah email uji coba yang dikirim dari Red Team Simulation untuk memverifikasi konfigurasi profil pengiriman SMTP Anda.\n\nRincian konfigurasi:\n- Host: ${host}:${port}\n- Pengirim: ${fromAddress}\n- Jabatan: ${position || "-"}\n\nJika Anda menerima pesan ini, profil pengiriman Anda berfungsi dengan baik!`;
 
     await transporter.sendMail({
       from: fromAddress,
       to: recipientName ? `"${recipientName}" <${toEmail}>` : toEmail,
-      subject: "Test Email - Red Team Simulation",
+      subject: "Email Uji Coba - Red Team Simulation",
       text: textBody,
       headers: customHeaders,
     });
 
     return NextResponse.json({
       success: true,
-      message: "Email Sent!",
+      message: "Email berhasil dikirim!",
     });
   } catch (error: any) {
     console.error("Failed to send test email:", error);
-    const errorMsg = error?.message || "Failed to connect to SMTP server";
+    const errorMsg = error?.message || "Gagal terhubung ke server SMTP";
     return NextResponse.json({
       success: false,
       message: errorMsg,

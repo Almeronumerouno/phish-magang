@@ -35,8 +35,8 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const html = typeof body?.html === "string" ? body.html : "";
-  if (!name) return NextResponse.json({ error: "Page name is required." }, { status: 400 });
-  if (!html.trim()) return NextResponse.json({ error: "HTML content is required." }, { status: 400 });
+  if (!name) return NextResponse.json({ error: "Nama landing page wajib diisi." }, { status: 400 });
+  if (!html.trim()) return NextResponse.json({ error: "Konten HTML wajib diisi." }, { status: 400 });
   const captureCredentials = body?.captureCredentials === true;
   const capturePasswords = captureCredentials && body?.capturePasswords === true;
   const redirectUrl = typeof body?.redirectUrl === "string" ? body.redirectUrl.trim() : null;

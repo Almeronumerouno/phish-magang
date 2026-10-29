@@ -23,7 +23,7 @@ export default function RegisterPage() {
     setError(null);
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      setError("Konfirmasi password tidak cocok.");
       return;
     }
 
@@ -39,7 +39,7 @@ export default function RegisterPage() {
       setError(
         err instanceof Error
           ? err.message
-          : "Registration failed. Please try again.",
+          : "Pendaftaran gagal. Silakan coba lagi.",
       );
       setIsLoading(false);
     }
@@ -56,7 +56,7 @@ export default function RegisterPage() {
       <div className="min-h-screen w-full flex items-center justify-center bg-background">
         <div
           className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-foreground"
-          aria-label="Loading"
+          aria-label="Memuat..."
         />
       </div>
     );
@@ -73,8 +73,8 @@ export default function RegisterPage() {
           <div className="w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center shadow-lg mb-4">
             <ShieldCheck size={26} strokeWidth={2} />
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Create Account</h1>
-          <p className="text-sm text-muted mt-1">Join Red Team Simulation</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Buat Akun</h1>
+          <p className="text-sm text-muted mt-1">Registrasi Operator Red Team</p>
         </div>
 
         <div className="bg-card rounded-2xl border border-border p-6 sm:p-8 shadow-xl shadow-black/[0.03]">
@@ -131,7 +131,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
-                Confirm Password
+                Konfirmasi Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted">
@@ -157,10 +157,10 @@ export default function RegisterPage() {
               className="w-full h-11 bg-btn-primary text-btn-primary-text font-medium text-sm rounded-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 mt-4 shadow-md hover:shadow-lg"
             >
               {isLoading ? (
-                <span>Registering...</span>
+                <span>Mendaftarkan...</span>
               ) : (
                 <>
-                  <span>Create Account</span>
+                  <span>Buat Akun</span>
                   <ArrowRight size={16} />
                 </>
               )}
@@ -168,12 +168,12 @@ export default function RegisterPage() {
           </form>
 
           <p className="text-center text-sm text-body mt-6 pt-5 border-t border-border">
-            Already have an account?{" "}
+            Sudah memiliki akun?{" "}
             <Link
               href="/login"
               className="text-foreground font-semibold hover:text-black transition-colors"
             >
-              Sign In here
+              Masuk di sini
             </Link>
           </p>
         </div>

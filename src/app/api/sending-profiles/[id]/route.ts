@@ -77,14 +77,14 @@ export async function PUT(
     const { id: rawId } = await params;
     const id = parseInt(rawId, 10);
     if (isNaN(id)) {
-      return NextResponse.json({ message: "Invalid profile ID", success: false }, { status: 400 });
+      return NextResponse.json({ message: "ID profil tidak valid", success: false }, { status: 400 });
     }
 
     const existing = await db.sendingProfile.findFirst({
       where: { id, userId: session.userId },
     });
     if (!existing) {
-      return NextResponse.json({ message: "SMTP not found", success: false }, { status: 404 });
+      return NextResponse.json({ message: "Profil SMTP tidak ditemukan", success: false }, { status: 404 });
     }
 
     const body = await req.json();
@@ -97,16 +97,16 @@ export async function PUT(
     const headersList: { key: string; value: string }[] = Array.isArray(body.headers) ? body.headers : [];
 
     if (!name) {
-      return NextResponse.json({ message: "No profile name specified", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Nama profil belum ditentukan", success: false }, { status: 400 });
     }
     if (!fromAddress) {
-      return NextResponse.json({ message: "No From Address specified", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Alamat pengirim (From Address) belum ditentukan", success: false }, { status: 400 });
     }
     if (!isValidFromAddress(fromAddress)) {
-      return NextResponse.json({ message: "Invalid From Address format", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Format alamat pengirim (From Address) tidak valid", success: false }, { status: 400 });
     }
     if (!host) {
-      return NextResponse.json({ message: "No SMTP Host specified", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Host SMTP belum ditentukan", success: false }, { status: 400 });
     }
 
     host = normalizeHost(host);
@@ -120,7 +120,7 @@ export async function PUT(
       },
     });
     if (nameConflict) {
-      return NextResponse.json({ message: "SMTP name already in use", success: false }, { status: 409 });
+      return NextResponse.json({ message: "Nama profil SMTP sudah digunakan", success: false }, { status: 409 });
     }
 
     // Replace headers and update profile
@@ -163,7 +163,7 @@ export async function PUT(
       modified_date: updated.modifiedDate.toISOString(),
       headers: updated.headers.map((h) => ({ key: h.key, value: h.value })),
       success: true,
-      message: "Profile edited successfully!",
+      message: "Profil pengiriman berhasil diperbarui!",
     });
   } catch (error) {
     console.error("Error updating sending profile:", error);
@@ -184,14 +184,14 @@ export async function DELETE(
     const { id: rawId } = await params;
     const id = parseInt(rawId, 10);
     if (isNaN(id)) {
-      return NextResponse.json({ message: "Invalid profile ID", success: false }, { status: 400 });
+      return NextResponse.json({ message: "ID profil tidak valid", success: false }, { status: 400 });
     }
 
     const existing = await db.sendingProfile.findFirst({
       where: { id, userId: session.userId },
     });
     if (!existing) {
-      return NextResponse.json({ message: "SMTP not found", success: false }, { status: 404 });
+      return NextResponse.json({ message: "Profil SMTP tidak ditemukan", success: false }, { status: 404 });
     }
 
     await db.sendingProfile.delete({
@@ -200,7 +200,7 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "Sending profile deleted successfully!",
+      message: "Profil pengiriman berhasil dihapus!",
     });
   } catch (error) {
     console.error("Error deleting sending profile:", error);

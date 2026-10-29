@@ -127,9 +127,9 @@ export default function CampaignDetailPage() {
       const res = await fetch(`/api/campaigns/${campaignId}`);
       if (!res.ok) {
         if (res.status === 404) {
-          setError("Campaign not found.");
+          setError("Campaign tidak ditemukan.");
         } else {
-          setError("Failed to load campaign.");
+          setError("Gagal memuat campaign.");
         }
         return;
       }
@@ -138,7 +138,7 @@ export default function CampaignDetailPage() {
       setError(null);
     } catch (err: any) {
       console.error(err);
-      setError("Network error loading campaign.");
+      setError("Terjadi kesalahan jaringan saat memuat campaign.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -153,7 +153,7 @@ export default function CampaignDetailPage() {
 
   const handleCompleteCampaign = async () => {
     if (!campaign) return;
-    if (!confirm(`Are you sure you want to complete campaign "${campaign.name}"?`)) return;
+    if (!confirm(`Apakah Anda yakin ingin menyelesaikan campaign "${campaign.name}"?`)) return;
 
     try {
       const res = await fetch(`/api/campaigns/${campaignId}`, {
@@ -162,32 +162,32 @@ export default function CampaignDetailPage() {
         body: JSON.stringify({ status: "Completed" }),
       });
       if (res.ok) {
-        showToast("Campaign marked as Completed.");
+        showToast("Campaign berhasil ditandai sebagai Selesai.");
         fetchCampaign();
       } else {
-        showToast("Failed to complete campaign.");
+        showToast("Gagal menyelesaikan campaign.");
       }
     } catch {
-      showToast("Error updating campaign.");
+      showToast("Terjadi kesalahan saat memperbarui campaign.");
     }
   };
 
   const handleDeleteCampaign = async () => {
     if (!campaign) return;
-    if (!confirm(`Permanently delete campaign "${campaign.name}" and all results?`)) return;
+    if (!confirm(`Hapus campaign "${campaign.name}" beserta seluruh hasilnya secara permanen?`)) return;
 
     try {
       const res = await fetch(`/api/campaigns/${campaignId}`, {
         method: "DELETE",
       });
       if (res.ok) {
-        showToast("Campaign deleted.");
+        showToast("Campaign berhasil dihapus.");
         router.push("/campaigns");
       } else {
-        showToast("Failed to delete campaign.");
+        showToast("Gagal menghapus campaign.");
       }
     } catch {
-      showToast("Error deleting campaign.");
+      showToast("Terjadi kesalahan saat menghapus campaign.");
     }
   };
 
@@ -216,7 +216,7 @@ export default function CampaignDetailPage() {
       a.download = `campaign_${campaign.id}_results.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast("Results CSV exported.");
+      showToast("CSV Hasil Target berhasil diekspor.");
     } else {
       const headers = ["Event ID", "Email", "Time", "Message", "Details"];
       const rows = campaign.events.map((e) => [
@@ -234,7 +234,7 @@ export default function CampaignDetailPage() {
       a.download = `campaign_${campaign.id}_raw_events.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast("Raw Events CSV exported.");
+      showToast("CSV Log Aktivitas Mentah berhasil diekspor.");
     }
   };
 
@@ -275,7 +275,7 @@ export default function CampaignDetailPage() {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          Completed
+          Selesai
         </span>
       );
     }
@@ -283,7 +283,7 @@ export default function CampaignDetailPage() {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-          In Progress
+          Sedang Berjalan
         </span>
       );
     }
@@ -291,7 +291,7 @@ export default function CampaignDetailPage() {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-          Scheduled
+          Terjadwal
         </span>
       );
     }
@@ -299,7 +299,7 @@ export default function CampaignDetailPage() {
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">
           <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-          Paused
+          Dijeda
         </span>
       );
     }
@@ -315,42 +315,42 @@ export default function CampaignDetailPage() {
     if (reported) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <ShieldCheck size={12} className="text-emerald-600" /> Reported
+          <ShieldCheck size={12} className="text-emerald-600" /> Dilaporkan
         </span>
       );
     }
     if (s.includes("submit")) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-50 text-red-700 border border-red-200">
-          <KeyRound size={12} className="text-red-500" /> Submitted Data
+          <KeyRound size={12} className="text-red-500" /> Data Dikirim
         </span>
       );
     }
     if (s.includes("click")) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
-          <MousePointerClick size={12} className="text-amber-600" /> Clicked Link
+          <MousePointerClick size={12} className="text-amber-600" /> Tautan Diklik
         </span>
       );
     }
     if (s.includes("open")) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-          <Lock size={12} className="text-blue-600" /> Email Opened
+          <Lock size={12} className="text-blue-600" /> Email Dibuka
         </span>
       );
     }
     if (s.includes("sent")) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-100 text-zinc-700 border border-zinc-200">
-          <Send size={12} className="text-zinc-500" /> Email Sent
+          <Send size={12} className="text-zinc-500" /> Email Terkirim
         </span>
       );
     }
     if (s.includes("sched")) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
-          <Clock size={12} className="text-purple-600" /> Scheduled
+          <Clock size={12} className="text-purple-600" /> Dijadwalkan
         </span>
       );
     }
@@ -365,7 +365,7 @@ export default function CampaignDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3">
         <div className="w-8 h-8 rounded-full border-2 border-border border-t-foreground animate-spin" />
-        <p className="text-xs text-muted">Loading campaign telemetry...</p>
+        <p className="text-xs text-muted">Memuat telemetri campaign...</p>
       </div>
     );
   }
@@ -374,13 +374,13 @@ export default function CampaignDetailPage() {
     return (
       <div className="space-y-4 max-w-[900px] mx-auto py-12 text-center">
         <AlertTriangle size={36} className="mx-auto text-red-500" />
-        <h2 className="text-xl font-bold text-foreground">{error || "Campaign not found"}</h2>
-        <p className="text-xs text-body">The campaign ID requested could not be retrieved from the database.</p>
+        <h2 className="text-xl font-bold text-foreground">{error || "Campaign tidak ditemukan"}</h2>
+        <p className="text-xs text-body">ID campaign yang diminta tidak dapat ditemukan di database.</p>
         <Link
           href="/campaigns"
           className="inline-flex items-center gap-2 px-4 py-2 bg-foreground text-white rounded-md text-xs font-medium hover:bg-gray-800 transition-colors"
         >
-          <ArrowLeft size={14} /> Back to Campaigns
+          <ArrowLeft size={14} /> Kembali ke Campaigns
         </Link>
       </div>
     );
@@ -405,7 +405,7 @@ export default function CampaignDetailPage() {
               className="inline-flex items-center gap-1 text-xs font-medium text-muted hover:text-foreground transition-colors p-1 -ml-1 rounded hover:bg-gray-100"
             >
               <ArrowLeft size={14} />
-              <span>Back to Campaigns</span>
+              <span>Kembali ke Campaigns</span>
             </Link>
             <span className="text-muted">/</span>
             <span className="text-xs text-muted font-mono">Campaign #{campaign.id}</span>
@@ -418,7 +418,7 @@ export default function CampaignDetailPage() {
             {getStatusBadge(campaign.status)}
           </div>
           <p className="text-xs text-body">
-            Real-time simulation telemetry, victim conversion funnel, and target audit stream.
+            Telemetri simulasi real-time, funnel konversi korban, dan riwayat audit target.
           </p>
         </div>
 
@@ -430,10 +430,10 @@ export default function CampaignDetailPage() {
             onClick={() => fetchCampaign(true)}
             disabled={refreshing}
             className="flex items-center gap-1.5 px-3 py-2 bg-card border border-border text-xs font-medium text-foreground rounded-md shadow-xs hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50"
-            title="Refresh campaign data"
+            title="Segarkan data campaign"
           >
             <RefreshCw size={13} className={refreshing ? "animate-spin text-muted" : "text-muted"} />
-            <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
+            <span>{refreshing ? "Menyegarkan..." : "Segarkan"}</span>
           </button>
 
           {/* Export CSV Dropdown */}
@@ -444,7 +444,7 @@ export default function CampaignDetailPage() {
               className="flex items-center gap-1.5 px-3 py-2 bg-card border border-border text-xs font-medium text-foreground rounded-md shadow-xs hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <Download size={13} className="text-muted" />
-              <span>Export CSV</span>
+              <span>Ekspor CSV</span>
             </button>
             {isExportOpen && (
               <div className="absolute right-0 mt-1.5 w-48 bg-card border border-border rounded-lg shadow-xl z-30 py-1 text-xs animate-in fade-in">
@@ -453,7 +453,7 @@ export default function CampaignDetailPage() {
                   onClick={() => handleExportCSV("results")}
                   className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-foreground font-medium flex items-center justify-between cursor-pointer"
                 >
-                  <span>Target Results CSV</span>
+                  <span>CSV Hasil Target</span>
                   <ChevronRight size={12} className="text-muted" />
                 </button>
                 <button
@@ -461,7 +461,7 @@ export default function CampaignDetailPage() {
                   onClick={() => handleExportCSV("events")}
                   className="w-full text-left px-3.5 py-2 hover:bg-gray-50 text-foreground font-medium flex items-center justify-between cursor-pointer"
                 >
-                  <span>Raw Events Log CSV</span>
+                  <span>CSV Log Aktivitas Mentah</span>
                   <ChevronRight size={12} className="text-muted" />
                 </button>
               </div>
@@ -476,7 +476,7 @@ export default function CampaignDetailPage() {
               className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white text-xs font-medium rounded-md shadow-xs hover:bg-emerald-700 transition-colors cursor-pointer"
             >
               <Flag size={13} />
-              <span>Complete</span>
+              <span>Tandai Selesai</span>
             </button>
           )}
 
@@ -487,7 +487,7 @@ export default function CampaignDetailPage() {
             className="flex items-center gap-1.5 px-3 py-2 bg-card border border-red-200 text-red-600 text-xs font-medium rounded-md shadow-xs hover:bg-red-50 transition-colors cursor-pointer"
           >
             <Trash2 size={13} />
-            <span>Delete</span>
+            <span>Hapus</span>
           </button>
         </div>
       </div>
@@ -495,7 +495,7 @@ export default function CampaignDetailPage() {
       {/* ===================== CAMPAIGN CONFIGURATION OVERVIEW ===================== */}
       <div className="bg-card rounded-lg border border-border p-5 shadow-xs">
         <h2 className="text-xs font-bold text-muted uppercase tracking-wider mb-4">
-          Simulation Configuration
+          Konfigurasi Simulasi
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
           <div className="space-y-1">
@@ -503,11 +503,11 @@ export default function CampaignDetailPage() {
               <Mail size={13} className="text-zinc-500" /> Email Template
             </span>
             <p className="font-semibold text-foreground truncate">
-              {campaign.template?.name || "None"}
+              {campaign.template?.name || "Tidak ada"}
             </p>
             {campaign.template?.subject && (
               <p className="text-[11px] text-body truncate">
-                Subj: {campaign.template.subject}
+                Subjek: {campaign.template.subject}
               </p>
             )}
           </div>
@@ -517,11 +517,11 @@ export default function CampaignDetailPage() {
               <Globe size={13} className="text-zinc-500" /> Landing Page
             </span>
             <p className="font-semibold text-foreground truncate">
-              {campaign.page?.name || "None"}
+              {campaign.page?.name || "Tidak ada"}
             </p>
             {campaign.page?.redirectUrl && (
               <p className="text-[11px] text-body truncate">
-                Redirect: {campaign.page.redirectUrl}
+                Pengalihan: {campaign.page.redirectUrl}
               </p>
             )}
           </div>
@@ -531,21 +531,21 @@ export default function CampaignDetailPage() {
               <Send size={13} className="text-zinc-500" /> Sending Profile
             </span>
             <p className="font-semibold text-foreground truncate">
-              {campaign.profile?.name || "None"}
+              {campaign.profile?.name || "Tidak ada"}
             </p>
             {campaign.profile?.fromAddress && (
               <p className="text-[11px] text-body truncate">
-                From: {campaign.profile.fromAddress}
+                Dari: {campaign.profile.fromAddress}
               </p>
             )}
           </div>
 
           <div className="space-y-1">
             <span className="text-muted font-medium flex items-center gap-1.5">
-              <Users size={13} className="text-zinc-500" /> Target Audience
+              <Users size={13} className="text-zinc-500" /> Target Audiens
             </span>
             <p className="font-semibold text-foreground truncate">
-              {campaign.group?.name || "None"} ({campaign.results.length} targets)
+              {campaign.group?.name || "Tidak ada"} ({campaign.results.length} target)
             </p>
             {campaign.url && (
               <p className="text-[11px] text-body truncate flex items-center gap-1">
@@ -559,18 +559,18 @@ export default function CampaignDetailPage() {
           <div className="flex items-center gap-4 flex-wrap">
             <span className="flex items-center gap-1.5">
               <Calendar size={13} />
-              Created: <strong className="text-foreground">{new Date(campaign.createdDate).toLocaleString()}</strong>
+              Dibuat: <strong className="text-foreground">{new Date(campaign.createdDate).toLocaleString("id-ID")}</strong>
             </span>
             {campaign.launchDate && (
               <span className="flex items-center gap-1.5">
                 <Clock size={13} />
-                Launched: <strong className="text-foreground">{new Date(campaign.launchDate).toLocaleString()}</strong>
+                Diluncurkan: <strong className="text-foreground">{new Date(campaign.launchDate).toLocaleString("id-ID")}</strong>
               </span>
             )}
             {campaign.completedDate && (
               <span className="flex items-center gap-1.5 text-emerald-700">
                 <CheckCircle2 size={13} />
-                Completed: <strong>{new Date(campaign.completedDate).toLocaleString()}</strong>
+                Selesai: <strong>{new Date(campaign.completedDate).toLocaleString("id-ID")}</strong>
               </span>
             )}
           </div>
@@ -580,13 +580,13 @@ export default function CampaignDetailPage() {
       {/* ===================== 5 TELEMETRY FUNNEL CARDS ===================== */}
       <div>
         <h2 className="text-sm font-semibold text-foreground mb-3">
-          Telemetry & Conversion Funnel
+          Telemetri & Funnel Konversi
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
           {/* Card 1: Emails Sent */}
           <div className="bg-card rounded-lg border border-border p-4 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted font-medium">Emails Sent</span>
+              <span className="text-xs text-muted font-medium">Email Terkirim</span>
               <div className="w-6 h-6 rounded-md bg-zinc-100 text-zinc-700 flex items-center justify-center">
                 <Send size={12} />
               </div>
@@ -605,7 +605,7 @@ export default function CampaignDetailPage() {
                 />
               </div>
               <span className="text-[10px] text-muted mt-1 block">
-                {campaign.stats.sentRate}% dispatched
+                {campaign.stats.sentRate}% terkirim
               </span>
             </div>
           </div>
@@ -613,7 +613,7 @@ export default function CampaignDetailPage() {
           {/* Card 2: Email Opened */}
           <div className="bg-card rounded-lg border border-border p-4 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted font-medium">Opened</span>
+              <span className="text-xs text-muted font-medium">Dibuka</span>
               <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
                 <Lock size={12} />
               </div>
@@ -634,7 +634,7 @@ export default function CampaignDetailPage() {
                 />
               </div>
               <span className="text-[10px] text-muted mt-1 block">
-                Tracking pixel trigger
+                Pemicu pixel pelacak
               </span>
             </div>
           </div>
@@ -642,7 +642,7 @@ export default function CampaignDetailPage() {
           {/* Card 3: Clicked Link */}
           <div className="bg-card rounded-lg border border-border p-4 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted font-medium">Clicked Link</span>
+              <span className="text-xs text-muted font-medium">Tautan Diklik</span>
               <div className="w-6 h-6 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center">
                 <MousePointerClick size={12} />
               </div>
@@ -663,7 +663,7 @@ export default function CampaignDetailPage() {
                 />
               </div>
               <span className="text-[10px] text-muted mt-1 block">
-                Phishing URL visited
+                URL phishing dikunjungi
               </span>
             </div>
           </div>
@@ -671,7 +671,7 @@ export default function CampaignDetailPage() {
           {/* Card 4: Submitted Data */}
           <div className="bg-card rounded-lg border border-border p-4 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted font-medium">Submitted Data</span>
+              <span className="text-xs text-muted font-medium">Data Dikirim</span>
               <div className="w-6 h-6 rounded-md bg-red-50 text-red-600 flex items-center justify-center">
                 <KeyRound size={12} />
               </div>
@@ -692,7 +692,7 @@ export default function CampaignDetailPage() {
                 />
               </div>
               <span className="text-[10px] text-muted mt-1 block">
-                Credentials submitted
+                Kredensial dikirimkan
               </span>
             </div>
           </div>
@@ -700,7 +700,7 @@ export default function CampaignDetailPage() {
           {/* Card 5: Reported Email */}
           <div className="bg-card rounded-lg border border-border p-4 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted font-medium">Reported</span>
+              <span className="text-xs text-muted font-medium">Dilaporkan</span>
               <div className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
                 <ShieldCheck size={12} />
               </div>
@@ -721,7 +721,7 @@ export default function CampaignDetailPage() {
                 />
               </div>
               <span className="text-[10px] text-muted mt-1 block">
-                Reported by target
+                Dilaporkan oleh target
               </span>
             </div>
           </div>
@@ -733,10 +733,10 @@ export default function CampaignDetailPage() {
         <div className="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-0.5">
             <h2 className="text-sm font-semibold text-foreground">
-              Target Results ({filteredResults.length} / {campaign.results.length})
+              Hasil Target ({filteredResults.length} / {campaign.results.length})
             </h2>
             <p className="text-xs text-muted">
-              Individual victim progression and security awareness action log.
+              Progres masing-masing korban dan log aksi kesadaran keamanan.
             </p>
           </div>
 
@@ -747,13 +747,13 @@ export default function CampaignDetailPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="h-[34px] px-2.5 text-xs bg-input-bg border border-border rounded-md text-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
             >
-              <option value="All">Filter: All Statuses</option>
-              <option value="Scheduled">Scheduled</option>
-              <option value="Sent">Email Sent</option>
-              <option value="Opened">Email Opened</option>
-              <option value="Clicked">Clicked Link</option>
-              <option value="Submitted">Submitted Data</option>
-              <option value="Reported">Reported</option>
+              <option value="All">Filter: Semua Status</option>
+              <option value="Scheduled">Dijadwalkan</option>
+              <option value="Sent">Email Terkirim</option>
+              <option value="Opened">Email Dibuka</option>
+              <option value="Clicked">Tautan Diklik</option>
+              <option value="Submitted">Data Dikirim</option>
+              <option value="Reported">Dilaporkan</option>
             </select>
 
             {/* Search Box */}
@@ -764,7 +764,7 @@ export default function CampaignDetailPage() {
               />
               <input
                 type="text"
-                placeholder="Search target email/name..."
+                placeholder="Cari email/nama target..."
                 value={searchTarget}
                 onChange={(e) => setSearchTarget(e.target.value)}
                 className="w-full h-[34px] pl-8 pr-3 rounded-md bg-input-bg border border-border text-xs text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-foreground"
@@ -779,22 +779,22 @@ export default function CampaignDetailPage() {
             <thead>
               <tr className="border-b border-border bg-gray-50/50">
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider">
-                  Target Name
+                  Nama Target
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider">
                   Email
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider">
-                  Position / Dept
+                  Posisi / Dept
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold text-muted uppercase tracking-wider">
-                  Send Date
+                  Tanggal Kirim
                 </th>
                 <th className="px-5 py-3 text-right text-xs font-semibold text-muted uppercase tracking-wider">
-                  Details
+                  Detail
                 </th>
               </tr>
             </thead>
@@ -802,7 +802,7 @@ export default function CampaignDetailPage() {
               {filteredResults.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-5 py-10 text-center text-xs text-empty">
-                    No target results found matching your filter criteria.
+                    Tidak ada target yang sesuai dengan kriteria filter.
                   </td>
                 </tr>
               ) : (
@@ -826,7 +826,7 @@ export default function CampaignDetailPage() {
                       {getTargetStatusBadge(r.status, r.reported)}
                     </td>
                     <td className="px-5 py-3.5 text-xs text-muted whitespace-nowrap">
-                      {r.sendDate ? new Date(r.sendDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "Pending"}
+                      {r.sendDate ? new Date(r.sendDate).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "Menunggu"}
                     </td>
                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
                       <button
@@ -834,7 +834,7 @@ export default function CampaignDetailPage() {
                         onClick={() => setSelectedTarget(r)}
                         className="px-2.5 py-1 text-[11px] font-medium border border-border rounded hover:bg-gray-100 text-foreground transition-colors cursor-pointer"
                       >
-                        Timeline
+                        Linimasa
                       </button>
                     </td>
                   </tr>
@@ -848,15 +848,15 @@ export default function CampaignDetailPage() {
       {/* ===================== SIMULATION ACTIVITY LOG (TIMELINE) ===================== */}
       <div className="bg-card rounded-lg border border-border p-5 shadow-xs">
         <h2 className="text-sm font-semibold text-foreground mb-1">
-          Activity Timeline ({campaign.events.length} events logged)
+          Linimasa Aktivitas ({campaign.events.length} aktivitas tercatat)
         </h2>
         <p className="text-xs text-muted mb-4">
-          Chronological simulation event stream captured by the campaign listener.
+          Aliran aktivitas simulasi kronologis yang ditangkap oleh listener campaign.
         </p>
 
         {campaign.events.length === 0 ? (
           <div className="py-8 text-center text-xs text-empty">
-            No events logged yet for this campaign.
+            Belum ada aktivitas yang tercatat untuk campaign ini.
           </div>
         ) : (
           <div className="space-y-3 relative pl-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200">
@@ -907,7 +907,7 @@ export default function CampaignDetailPage() {
                       )}
                     </div>
                     <span className="text-[11px] text-muted font-mono shrink-0">
-                      {new Date(ev.time).toLocaleString()}
+                      {new Date(ev.time).toLocaleString("id-ID")}
                     </span>
                   </div>
                 </div>
@@ -924,10 +924,10 @@ export default function CampaignDetailPage() {
             <div className="flex items-start justify-between border-b border-border pb-3">
               <div>
                 <h3 className="text-base font-bold text-foreground">
-                  Target Detail: {selectedTarget.email}
+                  Detail Target: {selectedTarget.email}
                 </h3>
                 <p className="text-xs text-muted">
-                  Tracking Token (rId): <strong className="font-mono text-foreground">{selectedTarget.rId}</strong>
+                  Token Pelacakan (rId): <strong className="font-mono text-foreground">{selectedTarget.rId}</strong>
                 </p>
               </div>
               <button
@@ -941,40 +941,40 @@ export default function CampaignDetailPage() {
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-2.5 bg-gray-50 rounded border border-border">
-                <span className="text-muted block text-[10px] uppercase font-bold">Name</span>
+                <span className="text-muted block text-[10px] uppercase font-bold">Nama</span>
                 <span className="font-medium text-foreground">
                   {selectedTarget.firstName || selectedTarget.lastName
                     ? `${selectedTarget.firstName || ""} ${selectedTarget.lastName || ""}`.trim()
-                    : "Not specified"}
+                    : "Tidak ditentukan"}
                 </span>
               </div>
               <div className="p-2.5 bg-gray-50 rounded border border-border">
-                <span className="text-muted block text-[10px] uppercase font-bold">Position</span>
+                <span className="text-muted block text-[10px] uppercase font-bold">Posisi</span>
                 <span className="font-medium text-foreground">
-                  {selectedTarget.position || "Not specified"}
+                  {selectedTarget.position || "Tidak ditentukan"}
                 </span>
               </div>
               <div className="p-2.5 bg-gray-50 rounded border border-border">
-                <span className="text-muted block text-[10px] uppercase font-bold">Current Status</span>
+                <span className="text-muted block text-[10px] uppercase font-bold">Status Saat Ini</span>
                 <span className="font-medium text-foreground">
                   {selectedTarget.status}
                 </span>
               </div>
               <div className="p-2.5 bg-gray-50 rounded border border-border">
-                <span className="text-muted block text-[10px] uppercase font-bold">Reported Phish</span>
+                <span className="text-muted block text-[10px] uppercase font-bold">Melaporkan Phishing</span>
                 <span className="font-medium text-foreground">
-                  {selectedTarget.reported ? "Yes" : "No"}
+                  {selectedTarget.reported ? "Ya" : "Tidak"}
                 </span>
               </div>
             </div>
 
             <div>
               <h4 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2">
-                Timeline Events for this Target
+                Aktivitas Linimasa Target Ini
               </h4>
               {targetEvents.length === 0 ? (
                 <p className="text-xs text-empty py-4 text-center">
-                  No individual event entries found for this recipient.
+                  Tidak ada catatan aktivitas individual yang ditemukan untuk penerima ini.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -994,7 +994,7 @@ export default function CampaignDetailPage() {
                         )}
                       </div>
                       <span className="text-[10px] text-muted font-mono shrink-0">
-                        {new Date(e.time).toLocaleTimeString()}
+                        {new Date(e.time).toLocaleTimeString("id-ID")}
                       </span>
                     </div>
                   ))}
@@ -1008,7 +1008,7 @@ export default function CampaignDetailPage() {
                 onClick={() => setSelectedTarget(null)}
                 className="px-4 py-1.5 text-xs font-medium border border-border rounded hover:bg-gray-50"
               >
-                Close
+                Tutup
               </button>
             </div>
           </div>

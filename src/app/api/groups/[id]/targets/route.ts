@@ -21,7 +21,7 @@ export async function GET(
     });
 
     if (!group || group.userId !== session.userId) {
-      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+      return NextResponse.json({ error: "Grup target tidak ditemukan" }, { status: 404 });
     }
 
     const groupTargets = await db.groupTarget.findMany({
@@ -54,13 +54,13 @@ export async function POST(
     const groupId = parseInt(id, 10);
     const group = await db.group.findUnique({ where: { id: groupId } });
     if (!group || group.userId !== session.userId) {
-      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+      return NextResponse.json({ error: "Grup target tidak ditemukan" }, { status: 404 });
     }
 
     const body = await req.json();
     const { firstName, lastName, email, position } = body;
     if (!email || typeof email !== "string" || !email.trim()) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+      return NextResponse.json({ error: "Email target wajib diisi" }, { status: 400 });
     }
 
     let target = await db.target.findFirst({ where: { email: email.trim() } });
@@ -104,12 +104,12 @@ export async function DELETE(
     const groupId = parseInt(id, 10);
     const targetId = parseInt(new URL(req.url).searchParams.get("targetId") || "", 10);
     if (!targetId) {
-      return NextResponse.json({ error: "targetId is required" }, { status: 400 });
+      return NextResponse.json({ error: "targetId wajib diisi" }, { status: 400 });
     }
 
     const group = await db.group.findUnique({ where: { id: groupId } });
     if (!group || group.userId !== session.userId) {
-      return NextResponse.json({ error: "Not Found" }, { status: 404 });
+      return NextResponse.json({ error: "Grup target tidak ditemukan" }, { status: 404 });
     }
 
     await db.groupTarget.deleteMany({ where: { groupId, targetId } });

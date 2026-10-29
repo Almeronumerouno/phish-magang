@@ -40,6 +40,8 @@ import {
   Download,
   HardDrive,
   RefreshCw,
+  Inbox,
+  Send,
 } from "lucide-react";
 
 function getAvatarColor(seed: string) {
@@ -194,7 +196,7 @@ function getGmailPreviewDocument(htmlContent: string, textContent: string, activ
     }
   </style>
 </head>
-<body>(No content in message body)</body>
+<body>(Tidak ada konten pada badan pesan)</body>
 </html>`;
 }
 
@@ -300,12 +302,23 @@ export default function EmailTemplatesPage() {
 
   // Form Fields
   const [formName, setFormName] = useState("");
-  const [formEnvelopeSender, setFormEnvelopeSender] = useState("");
+  const [formFromName, setFormFromName] = useState("");
+  const [formFromEmail, setFormFromEmail] = useState("");
   const [formSubject, setFormSubject] = useState("");
   const [formText, setFormText] = useState("");
   const [formHtml, setFormHtml] = useState("");
   const [formAddTrackingImage, setFormAddTrackingImage] = useState(true);
   const [formAttachments, setFormAttachments] = useState<AttachmentItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Envelope Sender formatted string for SMTP / preview
+  const formEnvelopeSender = useMemo(() => {
+    const name = formFromName.trim();
+    const email = formFromEmail.trim();
+    if (name && email) return `${name} <${email}>`;
+    if (email) return email;
+    return name;
+  }, [formFromName, formFromEmail]);
 
   // Editor Tabs: "text" | "html"
   const [activeTab, setActiveTab] = useState<"text" | "html">("html");
@@ -389,7 +402,8 @@ export default function EmailTemplatesPage() {
   const openNewModal = () => {
     setEditingId(null);
     setFormName("");
-    setFormEnvelopeSender("");
+    setFormFromName("");
+    setFormFromEmail("");
     setFormSubject("");
     setFormText("");
     setFormHtml("");
@@ -406,7 +420,18 @@ export default function EmailTemplatesPage() {
   const openEditModal = async (template: EmailTemplate) => {
     setEditingId(template.id);
     setFormName(template.name);
-    setFormEnvelopeSender(template.envelope_sender || template.envelopeSender || "");
+    const senderRaw = template.envelope_sender || template.envelopeSender || "";
+    const match = senderRaw.trim().match(/^(.*?)\s*<([^>]+)>$/);
+    if (match) {
+      setFormFromName(match[1].trim());
+      setFormFromEmail(match[2].trim());
+    } else if (senderRaw.includes("@")) {
+      setFormFromName("");
+      setFormFromEmail(senderRaw.trim());
+    } else {
+      setFormFromName(senderRaw.trim());
+      setFormFromEmail("");
+    }
     setFormSubject(template.subject || "");
     setFormText(template.text || "");
     setIsTextManuallyEdited(!!(template.text && template.text.trim()));
@@ -453,8 +478,19 @@ export default function EmailTemplatesPage() {
       }
 
       setEditingId(null); // Save as new template
-      setFormName(`Copy of ${fullDetail.name}`);
-      setFormEnvelopeSender(fullDetail.envelope_sender || fullDetail.envelopeSender || "");
+      setFormName(`Salinan ${fullDetail.name}`);
+      const senderRaw = fullDetail.envelope_sender || fullDetail.envelopeSender || "";
+      const match = senderRaw.trim().match(/^(.*?)\s*<([^>]+)>$/);
+      if (match) {
+        setFormFromName(match[1].trim());
+        setFormFromEmail(match[2].trim());
+      } else if (senderRaw.includes("@")) {
+        setFormFromName("");
+        setFormFromEmail(senderRaw.trim());
+      } else {
+        setFormFromName(senderRaw.trim());
+        setFormFromEmail("");
+      }
       setFormSubject(fullDetail.subject || "");
       setFormText(fullDetail.text || "");
       setIsTextManuallyEdited(!!(fullDetail.text && fullDetail.text.trim()));
@@ -482,7 +518,7 @@ export default function EmailTemplatesPage() {
       setModalOpen(true);
     } catch (err) {
       console.error("Failed to copy template:", err);
-      showFlash("Gagal menduplikasi template.", "error");
+      showFlash("Gagal menyalin template.", "error");
     }
   };
   // Quick insertion tags into active editor tab
@@ -517,11 +553,8 @@ export default function EmailTemplatesPage() {
       }, 0);
     }
   };
-  // Attachment upload handler via FileReader Base64 encoding
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
+  // Attachment upload helper via FileReader Base64 encoding
+  const processFiles = (files: FileList | File[]) => {
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -541,7 +574,12 @@ export default function EmailTemplatesPage() {
       };
       reader.readAsDataURL(file);
     });
+  };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    processFiles(files);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -552,7 +590,7 @@ export default function EmailTemplatesPage() {
   // Import Email via /api/import/email
   const handleImportEmail = async () => {
     if (!importContent.trim()) {
-      setImportError("No Content Specified!");
+      setImportError("Konten sumber email mentah belum ditentukan.");
       return;
     }
 
@@ -571,11 +609,24 @@ export default function EmailTemplatesPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || data?.message || "Failed to import email");
+        throw new Error(data?.error || data?.message || "Gagal mengimpor email");
       }
 
       if (data.subject) {
         setFormSubject(data.subject);
+      }
+      if (data.from || data.envelope_sender) {
+        const s = (data.from || data.envelope_sender) as string;
+        const match = s.trim().match(/^(.*?)\s*<([^>]+)>$/);
+        if (match) {
+          setFormFromName(match[1].trim());
+          setFormFromEmail(match[2].trim());
+        } else if (s.includes("@")) {
+          setFormFromName("");
+          setFormFromEmail(s.trim());
+        } else {
+          setFormFromName(s.trim());
+        }
       }
       if (data.text) {
         setFormText(data.text);
@@ -601,11 +652,11 @@ export default function EmailTemplatesPage() {
   // Save Template (POST or PUT)
   const handleSaveTemplate = async () => {
     if (!formName.trim()) {
-      setModalError("Template name not specified");
+      setModalError("Nama template wajib diisi");
       return;
     }
     if (!formText.trim() && !formHtml.trim()) {
-      setModalError("Need to specify at least plaintext or HTML content");
+      setModalError("Wajib menyertakan konten teks visual atau HTML mentah");
       return;
     }
 
@@ -663,14 +714,14 @@ export default function EmailTemplatesPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || data?.message || "Gagal menyimpan email template");
+        throw new Error(data?.error || data?.message || "Gagal menyimpan template email");
       }
 
       setModalOpen(false);
-      showFlash(editingId ? "Template berhasil diperbarui!" : "Template berhasil ditambahkan!");
+      showFlash(editingId ? "Template berhasil diperbarui." : "Template berhasil disimpan.");
       fetchTemplates();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Gagal menyimpan email template";
+      const message = err instanceof Error ? err.message : "Gagal menyimpan template email";
       setModalError(message);
     } finally {
       setSaving(false);
@@ -689,7 +740,7 @@ export default function EmailTemplatesPage() {
         throw new Error(data?.message || data?.error || "Gagal menghapus template");
       }
 
-      showFlash("Template email berhasil dihapus!");
+      showFlash("Template email berhasil dihapus.");
       setDeleteConfirm(null);
       fetchTemplates();
     } catch (err: unknown) {
@@ -759,7 +810,7 @@ export default function EmailTemplatesPage() {
 
         <div className="flex items-center gap-2.5">
           <div className="hidden sm:flex items-center gap-2 text-xs text-muted bg-gray-50 border border-border px-3 py-1.5 rounded-md">
-            <span className="font-semibold text-foreground">{templates.length}</span> Templates
+            <span className="font-semibold text-foreground">{templates.length}</span> Template
           </div>
 
           <button
@@ -768,7 +819,7 @@ export default function EmailTemplatesPage() {
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-btn-primary hover:bg-gray-800 text-white text-xs font-semibold rounded-md transition-all shadow-xs cursor-pointer w-full sm:w-auto"
           >
             <Plus size={14} strokeWidth={2.5} />
-            <span>New Template</span>
+            <span>Template Baru</span>
           </button>
         </div>
       </div>
@@ -804,18 +855,18 @@ export default function EmailTemplatesPage() {
       <div className="bg-card rounded-lg border border-border overflow-hidden shadow-xs">
         {/* Table Filter Bar */}
         <div className="p-3 border-b border-border bg-gray-50/50 flex items-center justify-between gap-3">
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full max-w-md">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
             <input
               type="text"
-              placeholder="Search templates..."
+              placeholder="Cari template email berdasarkan nama, subjek, atau pengirim..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs border border-border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-teal-500"
             />
           </div>
           <span className="text-xs text-muted shrink-0">
-            {filteredTemplates.length} {filteredTemplates.length === 1 ? "template" : "templates"}
+            {filteredTemplates.length} template
           </span>
         </div>
 
@@ -823,11 +874,11 @@ export default function EmailTemplatesPage() {
           <table className="w-full min-w-[750px] text-left text-xs">
             <thead>
               <tr className="border-b border-border bg-gray-50 font-semibold text-muted uppercase tracking-wider text-[11px]">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Subject</th>
-                <th className="px-4 py-3">Attachments</th>
-                <th className="px-4 py-3">Modified Date</th>
-                <th className="px-4 py-3 text-right w-32">Actions</th>
+                <th className="px-4 py-3">Nama Template</th>
+                <th className="px-4 py-3">Subjek &amp; Pengirim</th>
+                <th className="px-4 py-3">Lampiran</th>
+                <th className="px-4 py-3">Terakhir Diubah</th>
+                <th className="px-4 py-3 text-right w-32">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -835,7 +886,7 @@ export default function EmailTemplatesPage() {
                 <tr>
                   <td colSpan={5} className="px-4 py-10 text-center text-muted">
                     <Loader2 size={24} className="animate-spin text-muted mx-auto mb-2" />
-                    <span>Loading templates...</span>
+                    <span>Memuat template...</span>
                   </td>
                 </tr>
               ) : templates.length === 0 ? (
@@ -845,10 +896,10 @@ export default function EmailTemplatesPage() {
                       <Mail size={22} />
                     </div>
                     <p className="text-sm font-semibold text-foreground mb-1">
-                      No templates yet. Let&apos;s create one!
+                      Belum ada template email
                     </p>
                     <p className="text-xs text-muted max-w-sm mx-auto mb-4">
-                      Belum ada email template untuk simulasi phishing. Buat template pertama Anda sekarang.
+                      Belum ada email template yang terdaftar dalam sistem.
                     </p>
                     <button
                       type="button"
@@ -856,7 +907,7 @@ export default function EmailTemplatesPage() {
                       className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-btn-primary hover:bg-gray-800 text-white text-xs font-semibold rounded-md transition-all shadow-sm cursor-pointer"
                     >
                       <Plus size={14} strokeWidth={2.5} />
-                      <span>New Template</span>
+                      <span>Template Baru</span>
                     </button>
                   </td>
                 </tr>
@@ -885,14 +936,21 @@ export default function EmailTemplatesPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted truncate max-w-xs">
-                        {template.subject || <span className="italic text-muted/60">(No Subject)</span>}
+                      <td className="px-4 py-3 text-muted max-w-xs">
+                        <div className="font-medium text-foreground truncate">
+                          {template.subject || <span className="italic text-muted/60 font-normal">(Tanpa Subjek)</span>}
+                        </div>
+                        {(template.envelope_sender || template.envelopeSender) && (
+                          <div className="text-[11px] text-muted truncate mt-0.5">
+                            {template.envelope_sender || template.envelopeSender}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {attCount > 0 ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                             <Paperclip size={11} />
-                            {attCount} {attCount === 1 ? "file" : "files"}
+                            {attCount} berkas
                           </span>
                         ) : (
                           <span className="text-muted/60 text-[11px]">-</span>
@@ -919,8 +977,8 @@ export default function EmailTemplatesPage() {
                             type="button"
                             onClick={() => handleCopyTemplate(template)}
                             className="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded border border-transparent hover:border-emerald-200 transition-colors cursor-pointer"
-                            title="Copy Template"
-                            aria-label="Copy Template"
+                            title="Salin Template"
+                            aria-label="Salin Template"
                           >
                             <Copy size={13} />
                           </button>
@@ -928,8 +986,8 @@ export default function EmailTemplatesPage() {
                             type="button"
                             onClick={() => setDeleteConfirm(template)}
                             className="p-1.5 text-slate-600 hover:text-red-700 hover:bg-red-50 rounded border border-transparent hover:border-red-200 transition-colors cursor-pointer"
-                            title="Delete Template"
-                            aria-label="Delete Template"
+                            title="Hapus Template"
+                            aria-label="Hapus Template"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -962,10 +1020,10 @@ export default function EmailTemplatesPage() {
                   </div>
                   <div>
                     <h2 className="text-base sm:text-lg font-bold text-foreground">
-                      {editingId === null ? "New Template" : "Edit Template"}
+                      {editingId === null ? "Template Baru" : "Edit Template"}
                     </h2>
                     <p className="text-xs text-muted">
-                      Konfigurasi template email phishing & envelope
+                      Konfigurasi template email phishing &amp; envelope
                     </p>
                   </div>
                 </div>
@@ -987,13 +1045,14 @@ export default function EmailTemplatesPage() {
                     <button
                       type="button"
                       onClick={() => setMobileTab("preview")}
+                      title="Beralih ke Pratinjau Gmail"
                       className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
                         mobileTab === "preview"
                           ? "bg-white text-zinc-900 shadow-2xs"
                           : "text-zinc-500 hover:text-zinc-900"
                       }`}
                     >
-                      Gmail View
+                      Tampilan Gmail
                     </button>
                   </div>
 
@@ -1012,7 +1071,7 @@ export default function EmailTemplatesPage() {
                     type="button"
                     onClick={() => setModalOpen(false)}
                     className="p-1.5 text-muted hover:text-foreground rounded-lg hover:bg-zinc-100 transition-colors cursor-pointer"
-                    aria-label="Close modal"
+                    aria-label="Tutup modal"
                   >
                     <X size={18} strokeWidth={2} />
                   </button>
@@ -1028,77 +1087,91 @@ export default function EmailTemplatesPage() {
                   </div>
                 )}
 
-                {/* Form Grid: Name & Envelope Sender */}
+                {/* Form Grid: Nama Template, Subjek, Nama Pengirim, Alamat Pengirim */}
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                  <div className="sm:col-span-7 space-y-1.5">
+                  <div className="sm:col-span-6 space-y-1.5">
                     <label htmlFor="template-name" className="text-xs font-semibold text-foreground block">
-                      Name:
+                      Nama Template *
                     </label>
                     <input
                       id="template-name"
                       type="text"
-                      placeholder="Template name"
+                      placeholder="cth. Pembaruan Keamanan Akun"
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
                       className="w-full px-3.5 py-2 text-xs border border-border rounded-lg bg-white text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-foreground transition-all"
                     />
                   </div>
 
-                  <div className="sm:col-span-5 space-y-1.5">
+                  <div className="sm:col-span-6 space-y-1.5">
+                    <label htmlFor="template-subject" className="text-xs font-semibold text-foreground block">
+                      Subjek *
+                    </label>
+                    <input
+                      id="template-subject"
+                      type="text"
+                      placeholder="Contoh: Pembaruan Keamanan Akun"
+                      value={formSubject}
+                      onChange={(e) => setFormSubject(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs border border-border rounded-lg bg-white text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-foreground transition-all"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-6 space-y-1.5">
+                    <label htmlFor="template-from-name" className="text-xs font-semibold text-foreground block">
+                      Nama Pengirim (From Name)
+                    </label>
+                    <input
+                      id="template-from-name"
+                      type="text"
+                      placeholder="Contoh: Tim IT Support"
+                      value={formFromName}
+                      onChange={(e) => setFormFromName(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs border border-border rounded-lg bg-white text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-foreground transition-all"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-6 space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <label htmlFor="template-envelope-sender" className="text-xs font-semibold text-foreground block">
-                        Envelope Sender:
+                      <label htmlFor="template-from-email" className="text-xs font-semibold text-foreground block">
+                        Alamat Pengirim (From Address)
                       </label>
                       <div className="relative group">
                         <HelpCircle size={13} className="text-muted cursor-help" />
                         <div className="absolute bottom-full right-0 mb-1.5 hidden group-hover:block w-72 p-2.5 bg-zinc-900 text-white text-[11px] rounded-lg shadow-xl z-20 pointer-events-none leading-relaxed">
-                          Overrides SMTP From address (e.g. First Last &lt;user@example.com&gt;). Digunakan oleh email client sebagai alamat pengirim amplop.
+                          Menimpa alamat From SMTP. Digunakan oleh email client sebagai alamat pengirim amplop (Envelope Sender).
                         </div>
                       </div>
                     </div>
                     <input
-                      id="template-envelope-sender"
+                      id="template-from-email"
                       type="text"
-                      placeholder="First Last <user@example.com>"
-                      value={formEnvelopeSender}
-                      onChange={(e) => setFormEnvelopeSender(e.target.value)}
+                      placeholder="cth. security@perusahaan.com"
+                      value={formFromEmail}
+                      onChange={(e) => setFormFromEmail(e.target.value)}
                       className="w-full px-3.5 py-2 text-xs border border-border rounded-lg bg-white text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-foreground transition-all font-mono text-[11px]"
                     />
-                    <p className="text-[10px] text-muted leading-tight">
-                      Overrides SMTP From address (e.g. First Last &lt;user@example.com&gt;)
-                    </p>
                   </div>
                 </div>
 
-                {/* Subject */}
-                <div className="space-y-1.5">
-                  <label htmlFor="template-subject" className="text-xs font-semibold text-foreground block">
-                    Subject:
-                  </label>
-                  <input
-                    id="template-subject"
-                    type="text"
-                    placeholder="Email Subject"
-                    value={formSubject}
-                    onChange={(e) => setFormSubject(e.target.value)}
-                    className="w-full px-3.5 py-2 text-xs border border-border rounded-lg bg-white text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-foreground transition-all"
-                  />
-                </div>
+                <p className="text-[10px] text-muted -mt-2">
+                  Menimpa alamat From SMTP (cth. Nama Pengirim (From Name) &lt;user@example.com&gt; (From Address))
+                </p>
 
                 {/* Variables Toolbar */}
                 <div className="p-3 bg-zinc-50/70 border border-zinc-200/80 rounded-xl space-y-2">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-[11px] font-semibold text-zinc-700 mr-1 flex items-center gap-1">
                       <Code size={13} className="text-zinc-500" />
-                      Insert Tag:
+                      Sisipkan Variabel:
                     </span>
                     {[
                       "{{.URL}}",
-                      "{{.Tracker}}",
                       "{{.FirstName}}",
                       "{{.LastName}}",
                       "{{.Email}}",
                       "{{.Position}}",
+                      "{{.Tracker}}",
                     ].map((tag) => (
                       <button
                         key={tag}
@@ -1126,13 +1199,13 @@ export default function EmailTemplatesPage() {
                             setFormText(htmlToPlainText(formHtml));
                           }
                         }}
-                        className={`px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                           activeTab === "text"
                             ? "bg-white text-zinc-900 shadow-xs"
                             : "text-zinc-500 hover:text-zinc-900"
                         }`}
                       >
-                        Text
+                        Editor Visual
                       </button>
                       <button
                         type="button"
@@ -1140,13 +1213,13 @@ export default function EmailTemplatesPage() {
                           setActiveTab("html");
                           setPreviewTabOverride(null);
                         }}
-                        className={`px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                        className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                           activeTab === "html"
                             ? "bg-white text-zinc-900 shadow-xs"
                             : "text-zinc-500 hover:text-zinc-900"
                         }`}
                       >
-                        HTML
+                        HTML Mentah
                       </button>
                     </div>
 
@@ -1170,10 +1243,10 @@ export default function EmailTemplatesPage() {
                                 setIsTextManuallyEdited(false);
                               }}
                               className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-sans font-medium text-zinc-700 hover:text-black bg-white hover:bg-zinc-100 border border-zinc-200 rounded transition-all cursor-pointer shadow-2xs hover:border-zinc-400"
-                              title="Sync plaintext content from HTML"
+                              title="Sinkronkan konten teks dari HTML"
                             >
                               <RefreshCw size={11} className="text-zinc-500" />
-                              <span>Sync from HTML</span>
+                              <span>Sinkronkan dari HTML</span>
                             </button>
                           )}
                           <span>UTF-8 | Plaintext</span>
@@ -1186,7 +1259,7 @@ export default function EmailTemplatesPage() {
                           setIsTextManuallyEdited(true);
                           setFormText(e.target.value);
                         }}
-                        placeholder="Plaintext version of the email..."
+                        placeholder="Versi teks polos (plaintext) email..."
                         className="w-full min-h-[280px] max-h-[460px] p-4 font-mono text-xs bg-white text-foreground placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-zinc-400 resize-y leading-relaxed"
                       />
                     </div>
@@ -1196,7 +1269,7 @@ export default function EmailTemplatesPage() {
                     <div className="border border-border rounded-xl overflow-hidden bg-white shadow-2xs">
                       <div className="bg-zinc-50/80 px-4 py-2 border-b border-border flex items-center justify-between text-[11px] text-muted font-mono">
                         <span className="font-medium text-foreground">email_template.html</span>
-                        <span>UTF-8 | HTML5 Source</span>
+                        <span>UTF-8 | Sumber HTML5</span>
                       </div>
                       <textarea
                         ref={htmlRef}
@@ -1218,7 +1291,9 @@ export default function EmailTemplatesPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-semibold text-foreground">Add Tracking Image</span>
+                          <span className="text-xs font-semibold text-foreground">
+                            Sisipkan Pixel Pelacak (Tracking Pixel)
+                          </span>
                           <span title="Menyisipkan beacon pelacak {{.Tracker}} di akhir tag </body> untuk mencatat email opens">
                             <HelpCircle size={13} className="text-muted" />
                           </span>
@@ -1245,8 +1320,8 @@ export default function EmailTemplatesPage() {
                         <Paperclip size={14} />
                       </div>
                       <div>
-                        <span className="text-xs font-semibold text-foreground">Attachments:</span>
-                        <span className="text-[11px] text-muted ml-1.5">({formAttachments.length} files)</span>
+                        <span className="text-xs font-semibold text-foreground">Unggah Lampiran</span>
+                        <span className="text-[11px] text-muted ml-1.5">({formAttachments.length} berkas)</span>
                       </div>
                     </div>
                     <div>
@@ -1263,12 +1338,50 @@ export default function EmailTemplatesPage() {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-black text-white text-xs font-medium rounded-lg transition-all cursor-pointer shadow-xs"
                       >
                         <Plus size={13} strokeWidth={2.5} />
-                        <span>Add Files</span>
+                        <span>Pilih Berkas</span>
                       </button>
                     </div>
                   </div>
 
-                  {formAttachments.length > 0 ? (
+                  {/* Drag and drop helper area */}
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragging(true);
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragging(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        processFiles(e.dataTransfer.files);
+                      }
+                    }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`p-4 text-center border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+                      isDragging
+                        ? "border-teal-500 bg-teal-50/50"
+                        : "border-zinc-200 hover:border-zinc-400 bg-zinc-50/40"
+                    }`}
+                  >
+                    <Paperclip size={20} className="mx-auto text-zinc-400 mb-1.5" />
+                    <p className="text-xs font-medium text-foreground">
+                      Tarik dan lepas berkas lampiran di sini, atau klik untuk memilih berkas
+                    </p>
+                    <p className="text-[11px] text-muted mt-0.5">
+                      Mendukung payload simulasi (PDF, Word, Excel, ZIP, gambar, dll.)
+                    </p>
+                  </div>
+
+                  {/* File size warning notice */}
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/70 text-amber-800 text-[11px] leading-relaxed">
+                    <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-600" />
+                    <span>
+                      <strong>Peringatan Ukuran Berkas:</strong> Total ukuran lampiran disarankan tidak melebihi 10 MB per email agar tidak ditolak oleh filter gateway server SMTP target.
+                    </span>
+                  </div>
+
+                  {formAttachments.length > 0 && (
                     <div className="border border-border rounded-lg overflow-hidden bg-white divide-y divide-border/60">
                       {formAttachments.map((att, idx) => {
                         const IconComponent = getMimeIcon(att.type);
@@ -1291,18 +1404,14 @@ export default function EmailTemplatesPage() {
                               type="button"
                               onClick={() => handleRemoveAttachment(idx)}
                               className="p-1 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
-                              title="Remove Attachment"
-                              aria-label="Remove Attachment"
+                              title="Hapus Lampiran"
+                              aria-label="Hapus Lampiran"
                             >
                               <Trash2 size={13} />
                             </button>
                           </div>
                         );
                       })}
-                    </div>
-                  ) : (
-                    <div className="p-3 text-center border border-dashed border-zinc-200 rounded-lg text-muted text-[11px]">
-                      Belum ada lampiran berkas. Klik <b>Add Files</b> untuk menambahkan payload phishing (PDF, Office, Zip, dll).
                     </div>
                   )}
                 </div>
@@ -1319,7 +1428,7 @@ export default function EmailTemplatesPage() {
                     onClick={() => setModalOpen(false)}
                     className="px-4 py-2 text-xs font-medium border border-border rounded-lg hover:bg-zinc-100 text-foreground transition-colors cursor-pointer"
                   >
-                    Cancel
+                    Batal
                   </button>
                   <button
                     type="button"
@@ -1328,7 +1437,7 @@ export default function EmailTemplatesPage() {
                     className="px-5 py-2 text-xs font-medium bg-black hover:bg-zinc-800 text-white rounded-lg transition-all shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                   >
                     {saving && <Loader2 size={13} className="animate-spin" />}
-                    <span>{saving ? "Saving..." : "Save Template"}</span>
+                    <span>{saving ? "Menyimpan..." : "Simpan Template"}</span>
                   </button>
                 </div>
               </div>
@@ -1351,7 +1460,7 @@ export default function EmailTemplatesPage() {
                   <div className="h-4 w-px bg-[#c4c7c5] mx-1" />
                   <span className="text-xs font-semibold text-[#1f1f1f] flex items-center gap-1.5">
                     <Mail size={14} className="text-red-500" />
-                    <span>Gmail — Live Preview</span>
+                    <span>Gmail — Pratinjau Langsung</span>
                   </span>
                 </div>
 
@@ -1378,21 +1487,42 @@ export default function EmailTemplatesPage() {
                           : "text-zinc-600 hover:text-zinc-900"
                       }`}
                     >
-                      Plaintext
+                      Teks Polos
                     </button>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setMobileTab("editor")}
+                    title="Kembali ke Editor"
                     className="lg:hidden px-2.5 py-1 text-xs font-semibold rounded-md bg-white border border-border text-zinc-700 shadow-2xs"
                   >
-                    Back to Editor
+                    Kembali ke Editor
                   </button>
                   <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>Live Synced</span>
+                    <span>Tersinkronisasi Langsung</span>
                   </div>
+                </div>
+              </div>
+
+              {/* Authentic Gmail Chrome Folders Header */}
+              <div className="flex-shrink-0 px-4 py-1.5 bg-[#f6f8fc] border-b border-[#e0e3e7] flex items-center gap-1 overflow-x-auto text-[11px] text-[#444746] select-none">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#d3e3fd] text-[#041e49] font-medium cursor-pointer">
+                  <Inbox size={13} />
+                  <span>Kotak Masuk</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-[#e9eef6] text-[#444746] transition-colors cursor-pointer">
+                  <Star size={13} />
+                  <span>Berbintang</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-[#e9eef6] text-[#444746] transition-colors cursor-pointer">
+                  <Send size={13} />
+                  <span>Terkirim</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-[#e9eef6] text-[#444746] transition-colors cursor-pointer">
+                  <FileText size={13} />
+                  <span>Draf</span>
                 </div>
               </div>
 
@@ -1401,7 +1531,7 @@ export default function EmailTemplatesPage() {
                 <div className="flex items-center gap-0.5 sm:gap-1 text-[#444746]">
                   <button
                     type="button"
-                    title="Back to inbox"
+                    title="Kembali ke kotak masuk"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <ArrowLeft size={16} />
@@ -1409,21 +1539,21 @@ export default function EmailTemplatesPage() {
                   <div className="h-4 w-px bg-[#c4c7c5] mx-1" />
                   <button
                     type="button"
-                    title="Archive"
+                    title="Arsipkan"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <Archive size={16} />
                   </button>
                   <button
                     type="button"
-                    title="Report spam"
+                    title="Laporkan spam"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <OctagonAlert size={16} />
                   </button>
                   <button
                     type="button"
-                    title="Delete"
+                    title="Hapus"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <Trash2 size={16} />
@@ -1431,21 +1561,21 @@ export default function EmailTemplatesPage() {
                   <div className="h-4 w-px bg-[#c4c7c5] mx-1" />
                   <button
                     type="button"
-                    title="Mark as unread"
+                    title="Tandai belum dibaca"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <Mail size={16} />
                   </button>
                   <button
                     type="button"
-                    title="Snooze"
+                    title="Tunda"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <Clock size={16} />
                   </button>
                   <button
                     type="button"
-                    title="Add to tasks"
+                    title="Tambahkan ke tugas"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <CheckCircle2 size={16} />
@@ -1453,21 +1583,21 @@ export default function EmailTemplatesPage() {
                   <div className="h-4 w-px bg-[#c4c7c5] mx-1" />
                   <button
                     type="button"
-                    title="Move to"
+                    title="Pindahkan ke"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <FolderInput size={16} />
                   </button>
                   <button
                     type="button"
-                    title="Labels"
+                    title="Label"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <Tag size={16} />
                   </button>
                   <button
                     type="button"
-                    title="More options"
+                    title="Opsi lainnya"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <MoreVertical size={16} />
@@ -1477,14 +1607,14 @@ export default function EmailTemplatesPage() {
                 <div className="flex items-center gap-0.5 text-[#444746]">
                   <button
                     type="button"
-                    title="Print all"
+                    title="Cetak semua"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <Printer size={15} />
                   </button>
                   <button
                     type="button"
-                    title="In new window"
+                    title="Buka di jendela baru"
                     className="p-1.5 rounded-full hover:bg-[#e9eef6] transition-colors cursor-pointer"
                   >
                     <ExternalLink size={15} />
@@ -1498,23 +1628,23 @@ export default function EmailTemplatesPage() {
                 <div className="flex items-start justify-between gap-3 pb-3 border-b border-[#e0e3e7]">
                   <div className="flex items-center flex-wrap gap-2.5">
                     <h3 className="text-xl font-semibold text-[#1f1f1f] leading-snug break-words">
-                      {deferredSubject.trim() || "(no subject)"}
+                      {deferredSubject.trim() || "(tanpa subjek)"}
                     </h3>
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#e8eaed] text-[#444746]">
-                      Inbox
+                      Kotak Masuk
                     </span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0 text-[#747775]">
                     <button
                       type="button"
-                      title="Not starred"
+                      title="Bintang dinonaktifkan"
                       className="p-1 rounded-full hover:bg-zinc-100 cursor-pointer"
                     >
                       <Star size={17} />
                     </button>
                     <button
                       type="button"
-                      title="Important"
+                      title="Penting"
                       className="p-1 rounded-full hover:bg-zinc-100 cursor-pointer text-[#e37400]"
                     >
                       <Bookmark size={17} className="fill-[#e37400]/20" />
@@ -1543,7 +1673,7 @@ export default function EmailTemplatesPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-[#5e5e5e] mt-1">
-                        <span>to me</span>
+                        <span>kepada saya</span>
                         <span className="hidden sm:inline text-[11px] text-[#747775]">
                           &lt;target@company.com&gt;
                         </span>
@@ -1554,25 +1684,25 @@ export default function EmailTemplatesPage() {
 
                   <div className="flex items-center gap-1.5 shrink-0 text-[#5e5e5e]">
                     <span className="text-xs text-[#5e5e5e] whitespace-nowrap">
-                      10:45 AM (just now)
+                      10:45 (baru saja)
                     </span>
                     <button
                       type="button"
-                      title="Star"
+                      title="Beri bintang"
                       className="p-1 rounded-full hover:bg-zinc-100 cursor-pointer text-[#747775] hidden sm:block"
                     >
                       <Star size={16} />
                     </button>
                     <button
                       type="button"
-                      title="Reply"
+                      title="Balas"
                       className="p-1 rounded-full hover:bg-zinc-100 cursor-pointer text-[#747775]"
                     >
                       <Reply size={16} />
                     </button>
                     <button
                       type="button"
-                      title="More options"
+                      title="Opsi lainnya"
                       className="p-1 rounded-full hover:bg-zinc-100 cursor-pointer text-[#747775]"
                     >
                       <MoreVertical size={16} />
@@ -1583,7 +1713,7 @@ export default function EmailTemplatesPage() {
                 {/* Sandboxed Live Email Canvas */}
                 <div className="w-full min-h-[340px] relative overflow-hidden bg-white mt-2">
                   <iframe
-                    title="Gmail Live Preview Canvas"
+                    title="Kanvas Pratinjau Langsung Gmail"
                     srcDoc={gmailPreviewDoc}
                     className="w-full min-h-[340px] border-0"
                     sandbox="allow-same-origin allow-scripts"
@@ -1596,7 +1726,7 @@ export default function EmailTemplatesPage() {
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-xs font-semibold text-[#444746] flex items-center gap-1.5">
                         <Paperclip size={13} className="text-[#5e5e5e]" />
-                        {formAttachments.length} Attachment{formAttachments.length > 1 ? "s" : ""}
+                        {formAttachments.length} Lampiran
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-3">
@@ -1640,7 +1770,7 @@ export default function EmailTemplatesPage() {
                             <div className="p-3 bg-white flex items-center justify-between gap-2">
                               <div className="min-w-0 flex-1">
                                 <p className="text-xs font-semibold text-[#1f1f1f] truncate" title={att.name}>
-                                  {att.name}
+                                   {att.name}
                                 </p>
                                 <p className="text-[11px] text-[#5e5e5e] font-mono mt-0.5">
                                   {formatFileSize(
@@ -1651,13 +1781,13 @@ export default function EmailTemplatesPage() {
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <div
                                   className="p-1.5 rounded-full hover:bg-zinc-100 text-[#444746] cursor-pointer"
-                                  title="Download"
+                                  title="Unduh"
                                 >
                                   <Download size={14} />
                                 </div>
                                 <div
                                   className="p-1.5 rounded-full hover:bg-zinc-100 text-[#444746] cursor-pointer"
-                                  title="Save to Drive"
+                                  title="Simpan ke Drive"
                                 >
                                   <HardDrive size={14} />
                                 </div>
@@ -1677,14 +1807,14 @@ export default function EmailTemplatesPage() {
                     className="inline-flex items-center gap-2 px-6 py-2 rounded-full border border-[#747775] text-[#1f1f1f] text-sm font-medium hover:bg-[#f2f6fc] hover:border-[#1f1f1f] transition-all cursor-pointer shadow-2xs"
                   >
                     <Reply size={16} className="text-[#444746]" />
-                    <span>Reply</span>
+                    <span>Balas</span>
                   </button>
                   <button
                     type="button"
                     className="inline-flex items-center gap-2 px-6 py-2 rounded-full border border-[#747775] text-[#1f1f1f] text-sm font-medium hover:bg-[#f2f6fc] hover:border-[#1f1f1f] transition-all cursor-pointer shadow-2xs"
                   >
                     <Forward size={16} className="text-[#444746]" />
-                    <span>Forward</span>
+                    <span>Teruskan</span>
                   </button>
                 </div>
               </div>
@@ -1704,7 +1834,7 @@ export default function EmailTemplatesPage() {
                   <Mail size={15} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-foreground">Import Email</h3>
+                  <h3 className="text-sm font-bold text-foreground">Import Template Email</h3>
                   <p className="text-[11px] text-muted">Impor email dari berkas mentah RFC 822 / MIME / EML.</p>
                 </div>
               </div>
@@ -1715,7 +1845,7 @@ export default function EmailTemplatesPage() {
                   setImportError(null);
                 }}
                 className="text-muted hover:text-foreground p-1 rounded-lg hover:bg-zinc-100 transition-colors cursor-pointer"
-                aria-label="Close import modal"
+                aria-label="Tutup modal import"
               >
                 <X size={16} />
               </button>
@@ -1732,8 +1862,11 @@ export default function EmailTemplatesPage() {
 
               <div className="space-y-1.5">
                 <label htmlFor="raw-email-source" className="text-xs font-semibold text-foreground block">
-                  Raw Email Source (MIME/EML):
+                  Sumber Email Mentah (RFC 822 / MIME / EML):
                 </label>
+                <p className="text-[11px] text-muted">
+                  Tempelkan source kode email mentah (RFC 822/MIME/EML) di bawah ini untuk mengekstrak subjek, pengirim, dan badan pesan.
+                </p>
                 <div className="border border-border rounded-xl overflow-hidden bg-white shadow-2xs">
                   <div className="bg-zinc-50/80 px-4 py-2 border-b border-border flex items-center justify-between text-[11px] text-muted font-mono">
                     <span className="font-medium text-foreground">raw_email.eml</span>
@@ -1744,7 +1877,7 @@ export default function EmailTemplatesPage() {
                     rows={11}
                     value={importContent}
                     onChange={(e) => setImportContent(e.target.value)}
-                    placeholder="Paste raw RFC 822 / MIME email headers and body here..."
+                    placeholder="Tempelkan source kode email mentah (RFC 822/MIME/EML) di bawah ini..."
                     className="w-full p-3.5 font-mono text-xs bg-white text-foreground placeholder:text-muted focus:outline-none leading-relaxed resize-y"
                   />
                 </div>
@@ -1753,7 +1886,7 @@ export default function EmailTemplatesPage() {
               <div>
                 <label className="flex items-center justify-between p-3 rounded-xl border border-border bg-zinc-50/70 hover:bg-zinc-50 transition-colors cursor-pointer select-none">
                   <div>
-                    <span className="text-xs font-semibold text-foreground block">Change Links to Point to Landing Page</span>
+                    <span className="text-xs font-semibold text-foreground block">Ubah Tautan Mengarah ke Landing Page</span>
                     <span className="text-[11px] text-muted">
                       Mengonversi seluruh tautan <code className="font-mono text-[10px] bg-zinc-200/60 px-1 py-0.5 rounded">&lt;a href=&quot;...&quot;&gt;</code> menjadi <code className="font-mono text-[10px] bg-zinc-200/60 px-1 py-0.5 rounded">{"{{.URL}}"}</code>.
                     </span>
@@ -1778,7 +1911,7 @@ export default function EmailTemplatesPage() {
                 }}
                 className="px-4 py-2 text-xs font-medium border border-border rounded-lg hover:bg-zinc-100 text-foreground transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -1787,7 +1920,7 @@ export default function EmailTemplatesPage() {
                 className="px-5 py-2 text-xs font-medium bg-black hover:bg-zinc-800 text-white rounded-lg transition-all shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
                 {importing && <Loader2 size={13} className="animate-spin" />}
-                <span>{importing ? "Importing..." : "Import"}</span>
+                <span>{importing ? "Mengimpor..." : "Import"}</span>
               </button>
             </div>
           </div>
@@ -1803,9 +1936,9 @@ export default function EmailTemplatesPage() {
                 <ShieldAlert size={22} />
               </div>
               <div>
-                <h3 className="text-base font-bold text-foreground">Hapus Email Template?</h3>
+                <h3 className="text-base font-bold text-foreground">Hapus Template?</h3>
                 <p className="text-xs text-muted">
-                  Tindakan ini permanen dan tidak dapat dibatalkan.
+                  Apakah Anda yakin ingin menghapus template ini?
                 </p>
               </div>
             </div>
@@ -1815,7 +1948,7 @@ export default function EmailTemplatesPage() {
                 Anda akan menghapus template: <b className="font-semibold">{deleteConfirm.name}</b>
               </p>
               <p className="text-[11px] text-red-700">
-                This will delete the template. This can&apos;t be undone!
+                Tindakan ini permanen dan tidak dapat dibatalkan. Template yang dihapus tidak dapat dipulihkan.
               </p>
             </div>
 
@@ -1825,7 +1958,7 @@ export default function EmailTemplatesPage() {
                 onClick={() => setDeleteConfirm(null)}
                 className="px-4 py-2 text-xs font-medium border border-border rounded-lg hover:bg-zinc-100 text-foreground transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="button"
@@ -1834,7 +1967,7 @@ export default function EmailTemplatesPage() {
                 className="px-4 py-2 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
                 {deleting && <Loader2 size={13} className="animate-spin" />}
-                <span>{deleting ? "Deleting..." : "Delete"}</span>
+                <span>{deleting ? "Menghapus..." : "Hapus"}</span>
               </button>
             </div>
           </div>

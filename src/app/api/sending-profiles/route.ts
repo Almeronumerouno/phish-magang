@@ -78,16 +78,16 @@ export async function POST(req: NextRequest) {
 
     // Validations ala GoPhish
     if (!name) {
-      return NextResponse.json({ message: "No profile name specified", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Nama profil belum ditentukan", success: false }, { status: 400 });
     }
     if (!fromAddress) {
-      return NextResponse.json({ message: "No From Address specified", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Alamat pengirim (From Address) belum ditentukan", success: false }, { status: 400 });
     }
     if (!isValidFromAddress(fromAddress)) {
-      return NextResponse.json({ message: "Invalid From Address format", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Format alamat pengirim (From Address) tidak valid", success: false }, { status: 400 });
     }
     if (!host) {
-      return NextResponse.json({ message: "No SMTP Host specified", success: false }, { status: 400 });
+      return NextResponse.json({ message: "Host SMTP belum ditentukan", success: false }, { status: 400 });
     }
 
     host = normalizeHost(host);
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existing) {
-      return NextResponse.json({ message: "SMTP name already in use", success: false }, { status: 409 });
+      return NextResponse.json({ message: "Nama profil SMTP sudah digunakan", success: false }, { status: 409 });
     }
 
     // Determine the next available ID
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
         modified_date: newProfile.modifiedDate.toISOString(),
         headers: newProfile.headers.map((h) => ({ key: h.key, value: h.value })),
         success: true,
-        message: "Profile added successfully!",
+        message: "Profil pengiriman berhasil ditambahkan!",
       },
       { status: 201 }
     );
