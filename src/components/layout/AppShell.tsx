@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Menu } from "lucide-react";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { TopAppBar } from "@/components/layout/TopAppBar";
 import { useAuth } from "@/lib/auth-context";
 
 const PROTECTED_PREFIXES = [
@@ -82,7 +82,19 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <TopAppBar onMenuToggle={() => setIsMobileMenuOpen((prev) => !prev)} />
+        {/* Mobile Navigation Header */}
+        <div className="md:hidden flex items-center justify-between px-4 py-2.5 border-b border-border bg-card shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-1.5 -ml-1 text-foreground hover:bg-black/5 rounded-md cursor-pointer"
+            aria-label="Open navigation menu"
+          >
+            <Menu size={20} strokeWidth={2} />
+          </button>
+          <span className="text-xs font-semibold text-foreground">Red Team Simulation</span>
+        </div>
+
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background px-4 py-4 sm:px-6 sm:py-6 md:pt-6 md:pb-8">
           {children}
         </main>
