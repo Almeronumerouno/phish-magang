@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { readSessionCookie, verifySession } from "@/lib/session";
 import crypto from "crypto";
+import { dispatchCampaignEmails } from "@/lib/campaign-dispatcher";
 
 function getSession(req: Request) {
   const cookieHeader = req.headers.get("cookie");
@@ -81,7 +82,7 @@ export async function GET(req: Request) {
 
       for (const r of results) {
         const s = (r.status || "").toLowerCase();
-        if (s !== "scheduled") sent++;
+        if (s !== "scheduled" && !s.includes("error")) sent++;
         if (s.includes("open") || s.includes("click") || s.includes("submit")) opened++;
         if (s.includes("click") || s.includes("submit")) clicked++;
         if (s.includes("submit")) submitted++;
@@ -178,7 +179,10 @@ export async function POST(req: Request) {
     if (isNaN(parsedTemplateId)) {
       return NextResponse.json({ error: "Email Template is required." }, { status: 400 });
     }
-    const template = await db.template.findUnique({ where: { id: parsedTemplateId } });
+    const template = await db.template.findUnique({
+      where: { id: parsedTemplateId },
+      include: { attachments: true },
+    });
     if (!template) {
       return NextResponse.json({ error: "Selected Email Template does not exist." }, { status: 404 });
     }
@@ -198,7 +202,10 @@ export async function POST(req: Request) {
     if (isNaN(parsedSmtpId)) {
       return NextResponse.json({ error: "Sending Profile is required." }, { status: 400 });
     }
-    const profile = await db.sendingProfile.findUnique({ where: { id: parsedSmtpId } });
+    const profile = await db.sendingProfile.findUnique({
+      where: { id: parsedSmtpId },
+      include: { headers: true },
+    });
     if (!profile) {
       return NextResponse.json({ error: "Selected Sending Profile does not exist." }, { status: 404 });
     }
@@ -259,7 +266,7 @@ export async function POST(req: Request) {
     }
 
     // 8. Create Campaign, Target Results, and SimEvents atomically
-    const campaign = await db.$transaction(async (tx) => {
+    const { campaign, createdTargets } = await db.$transaction(async (tx) => {
       const createdCampaign = await tx.campaign.create({
         data: {
           userId: session.userId,
@@ -294,17 +301,23 @@ export async function POST(req: Request) {
         },
       });
 
-      // Generate Result records for each target in the group
+      // Generate initial Result records with status "Scheduled"
+      const targetsList: Array<{
+        id: number;
+        rId: string;
+        email: string;
+        firstName: string | null;
+        lastName: string | null;
+        position: string | null;
+      }> = [];
+
       for (const gt of group.targets) {
         const target = gt.target;
         if (!target) continue;
 
         const rId = generateRId();
-        const isScheduled = initialStatus === "Scheduled";
-        const targetStatus = isScheduled ? "Scheduled" : "Email Sent";
-        const sendDate = isScheduled ? null : now;
 
-        await tx.result.create({
+        const createdResult = await tx.result.create({
           data: {
             campaignId: createdCampaign.id,
             userId: session.userId,
@@ -313,28 +326,36 @@ export async function POST(req: Request) {
             firstName: target.firstName,
             lastName: target.lastName,
             position: target.position,
-            status: targetStatus,
-            sendDate,
+            status: "Scheduled",
+            sendDate: null,
             reported: false,
           },
         });
 
-        // If launching immediately, record "Email Sent" event
-        if (!isScheduled) {
-          await tx.simEvent.create({
-            data: {
-              campaignId: createdCampaign.id,
-              email: target.email,
-              time: now,
-              message: "Email Sent",
-              details: `Dispatched to ${target.email} via ${profile.name}`,
-            },
-          });
-        }
+        targetsList.push({
+          id: createdResult.id,
+          rId,
+          email: target.email,
+          firstName: target.firstName,
+          lastName: target.lastName,
+          position: target.position,
+        });
       }
 
-      return createdCampaign;
+      return { campaign: createdCampaign, createdTargets: targetsList };
     });
+
+    // 9. Execute authentic SMTP email dispatch outside the database transaction
+    const isScheduled = initialStatus === "Scheduled";
+    if (!isScheduled) {
+      await dispatchCampaignEmails({
+        campaignId: campaign.id,
+        baseUrl: rawUrl,
+        profile,
+        template,
+        targets: createdTargets,
+      });
+    }
 
     // Return complete campaign payload
     const fullCampaign = await db.campaign.findUnique({

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { readSessionCookie, verifySession } from "@/lib/session";
+import { dispatchCampaignEmails } from "@/lib/campaign-dispatcher";
 
 function getSession(req: Request) {
   const cookieHeader = req.headers.get("cookie");
@@ -105,7 +106,7 @@ export async function GET(
     for (const r of results) {
       const s = (r.status || "").toLowerCase();
       if (s === "scheduled") scheduled++;
-      if (s !== "scheduled") sent++;
+      if (s !== "scheduled" && !s.includes("error")) sent++;
       if (s.includes("open") || s.includes("click") || s.includes("submit")) opened++;
       if (s.includes("click") || s.includes("submit")) clicked++;
       if (s.includes("submit")) submitted++;
@@ -174,7 +175,7 @@ export async function PATCH(
     }
 
     const now = new Date();
-    const updateData: any = { status: newStatus };
+    const updateData: { status: string; completedDate?: Date } = { status: newStatus };
 
     // Lifecycle transitions
     if (newStatus.toLowerCase() === "completed") {
@@ -199,13 +200,8 @@ export async function PATCH(
         },
       });
     } else if (newStatus === "Active" || newStatus === "In_Progress") {
-      // If was scheduled, dispatch scheduled targets to Email Sent
+      // If was scheduled, dispatch scheduled targets using authentic SMTP engine
       if (campaign.status === "Scheduled") {
-        await db.result.updateMany({
-          where: { campaignId, status: "Scheduled" },
-          data: { status: "Email Sent", sendDate: now },
-        });
-
         await db.simEvent.create({
           data: {
             campaignId,
@@ -215,6 +211,43 @@ export async function PATCH(
             details: "Scheduled campaign dispatched to targets",
           },
         });
+
+        const fullCampaignData = await db.campaign.findUnique({
+          where: { id: campaignId },
+          include: {
+            template: {
+              include: { attachments: true },
+            },
+            profile: {
+              include: { headers: true },
+            },
+            results: {
+              where: { status: "Scheduled" },
+            },
+          },
+        });
+
+        if (
+          fullCampaignData &&
+          fullCampaignData.template &&
+          fullCampaignData.profile &&
+          fullCampaignData.results.length > 0
+        ) {
+          await dispatchCampaignEmails({
+            campaignId,
+            baseUrl: fullCampaignData.url || "",
+            profile: fullCampaignData.profile,
+            template: fullCampaignData.template,
+            targets: fullCampaignData.results.map((r) => ({
+              id: r.id,
+              rId: r.rId,
+              email: r.email || "",
+              firstName: r.firstName,
+              lastName: r.lastName,
+              position: r.position,
+            })),
+          });
+        }
       } else {
         await db.simEvent.create({
           data: {

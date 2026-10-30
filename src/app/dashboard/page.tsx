@@ -76,10 +76,10 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-bold leading-tight sm:leading-[44px] tracking-tight text-foreground">
-            Ringkasan Security Awareness
+            Dashboard
           </h1>
           <p className="text-xs sm:text-sm text-body mt-1">
-            Metrik real-time dan pelacakan performa campaign
+            Metrik real-time dan pelacakan performa simulasi security awareness.
           </p>
         </div>
         <button

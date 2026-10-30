@@ -789,34 +789,23 @@ export default function EmailTemplatesPage() {
   );
 
   return (
-    <div className="space-y-5 max-w-[1440px] pb-10">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+    <div className="space-y-6 max-w-[1440px] pb-10">
+      {/* ===================== PAGE HEADER ===================== */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-teal-50 text-teal-600 rounded-lg border border-teal-100">
-              <Mail size={20} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">
-                Email Templates
-              </h1>
-              <p className="text-xs text-muted">
-                Kelola template email phishing dan skenario pesan simulasi.
-              </p>
-            </div>
-          </div>
+          <h1 className="text-2xl sm:text-3xl lg:text-[36px] font-bold leading-tight sm:leading-[44px] tracking-tight text-foreground">
+            Email Templates
+          </h1>
+          <p className="text-xs sm:text-sm text-body">
+            Kelola template email phishing dan skenario pesan simulasi.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <div className="hidden sm:flex items-center gap-2 text-xs text-muted bg-gray-50 border border-border px-3 py-1.5 rounded-md">
-            <span className="font-semibold text-foreground">{templates.length}</span> Template
-          </div>
-
+        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
           <button
             type="button"
             onClick={openNewModal}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-btn-primary hover:bg-gray-800 text-white text-xs font-semibold rounded-md transition-all shadow-xs cursor-pointer w-full sm:w-auto"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3.5 py-2 bg-btn-primary text-btn-primary-text text-xs font-medium rounded-md shadow-xs hover:bg-gray-800 transition-colors cursor-pointer"
           >
             <Plus size={14} strokeWidth={2.5} />
             <span>Template Baru</span>

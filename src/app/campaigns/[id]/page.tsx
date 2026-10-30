@@ -257,6 +257,7 @@ export default function CampaignDetailPage() {
       else if (statusFilter === "Clicked") matchesStatus = s.includes("click");
       else if (statusFilter === "Submitted") matchesStatus = s.includes("submit");
       else if (statusFilter === "Reported") matchesStatus = r.reported;
+      else if (statusFilter === "Error") matchesStatus = s.includes("error") || s.includes("gagal");
 
       return matchesSearch && matchesStatus;
     });
@@ -351,6 +352,13 @@ export default function CampaignDetailPage() {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
           <Clock size={12} className="text-purple-600" /> Dijadwalkan
+        </span>
+      );
+    }
+    if (s.includes("error") || s.includes("gagal")) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
+          <AlertTriangle size={12} className="text-rose-600" /> Gagal Terkirim (Error)
         </span>
       );
     }
@@ -577,12 +585,39 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {/* ===================== 5 TELEMETRY FUNNEL CARDS ===================== */}
+      {/* ===================== TELEMETRY FUNNEL CARDS ===================== */}
       <div>
-        <h2 className="text-sm font-semibold text-foreground mb-3">
-          Telemetri & Funnel Konversi
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-foreground">
+            Telemetri & Funnel Konversi
+          </h2>
+          {(campaign.stats?.error || 0) > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+              <AlertTriangle size={12} className="text-rose-600" />
+              {campaign.stats.error} Target Gagal Terkirim
+            </span>
+          )}
+        </div>
+
+        {(campaign.stats?.error || 0) > 0 && (
+          <div className="mb-3.5 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-center justify-between text-xs text-rose-800">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={16} className="text-rose-600 shrink-0" />
+              <span>
+                <strong>Perhatian:</strong> Terdapat <strong>{campaign.stats.error}</strong> target dengan status <strong>Gagal Terkirim (Error)</strong>. Periksa linimasa aktivitas atau klik filter untuk meninjau rincian error SMTP.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("Error")}
+              className="px-2.5 py-1 text-[11px] font-medium bg-rose-100 hover:bg-rose-200 text-rose-900 rounded border border-rose-300 transition-colors cursor-pointer shrink-0 ml-3"
+            >
+              Filter Target Gagal
+            </button>
+          </div>
+        )}
+
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${(campaign.stats?.error || 0) > 0 ? "lg:grid-cols-3 xl:grid-cols-6" : "lg:grid-cols-5"} gap-3.5`}>
           {/* Card 1: Emails Sent */}
           <div className="bg-card rounded-lg border border-border p-4 shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between">
@@ -725,6 +760,37 @@ export default function CampaignDetailPage() {
               </span>
             </div>
           </div>
+
+          {/* Card 6: Delivery Errors (if any) */}
+          {(campaign.stats?.error || 0) > 0 && (
+            <div className="bg-rose-50/60 rounded-lg border border-rose-200 p-4 shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-rose-700 font-medium">Gagal Terkirim</span>
+                <div className="w-6 h-6 rounded-md bg-rose-100 text-rose-700 flex items-center justify-center">
+                  <AlertTriangle size={12} />
+                </div>
+              </div>
+              <div className="mt-2.5">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-rose-700">
+                    {campaign.stats.error}
+                  </span>
+                  <span className="text-xs text-rose-600">/ {campaign.stats.total}</span>
+                </div>
+                <div className="w-full bg-rose-200/60 rounded-full h-1.5 mt-2 overflow-hidden">
+                  <div
+                    className="bg-rose-500 h-1.5 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, Math.round((campaign.stats.error / (campaign.stats.total || 1)) * 100))}%`,
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-rose-600 mt-1 block">
+                  {Math.round((campaign.stats.error / (campaign.stats.total || 1)) * 100)}% SMTP gagal
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -754,6 +820,7 @@ export default function CampaignDetailPage() {
               <option value="Clicked">Tautan Diklik</option>
               <option value="Submitted">Data Dikirim</option>
               <option value="Reported">Dilaporkan</option>
+              <option value="Error">Gagal Terkirim (Error)</option>
             </select>
 
             {/* Search Box */}
@@ -825,8 +892,22 @@ export default function CampaignDetailPage() {
                     <td className="px-5 py-3.5 text-xs whitespace-nowrap">
                       {getTargetStatusBadge(r.status, r.reported)}
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-muted whitespace-nowrap">
-                      {r.sendDate ? new Date(r.sendDate).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : "Menunggu"}
+                    <td className="px-5 py-3.5 text-xs whitespace-nowrap">
+                      {r.status.toLowerCase().includes("error") || r.status.toLowerCase().includes("gagal") ? (
+                        r.sendDate ? (
+                          <span className="text-rose-600 font-medium">
+                            {new Date(r.sendDate).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', second: '2-digit' })} (Gagal)
+                          </span>
+                        ) : (
+                          <span className="text-rose-600 font-medium">Gagal</span>
+                        )
+                      ) : r.sendDate ? (
+                        <span className="text-muted">
+                          {new Date(r.sendDate).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </span>
+                      ) : (
+                        <span className="text-muted">Menunggu</span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5 text-right whitespace-nowrap">
                       <button
@@ -864,8 +945,12 @@ export default function CampaignDetailPage() {
               const msg = (ev.message || "").toLowerCase();
               let icon = <Info size={12} className="text-zinc-600" />;
               let dotColor = "bg-zinc-500";
+              const isError = msg.includes("error") || msg.includes("gagal");
 
-              if (msg.includes("create")) {
+              if (isError) {
+                icon = <AlertTriangle size={12} className="text-rose-600" />;
+                dotColor = "bg-rose-500";
+              } else if (msg.includes("create")) {
                 icon = <Radio size={12} className="text-blue-600" />;
                 dotColor = "bg-blue-500";
               } else if (msg.includes("sent")) {
@@ -890,20 +975,35 @@ export default function CampaignDetailPage() {
                   <span
                     className={`absolute -left-6 top-1.5 w-2.5 h-2.5 rounded-full ring-4 ring-white ${dotColor}`}
                   />
-                  <div className="flex-1 bg-gray-50/70 border border-border/70 rounded-md p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                    <div>
-                      <span className="font-semibold text-foreground mr-2">
-                        {ev.message}
-                      </span>
-                      {ev.email && (
-                        <span className="text-body font-mono text-[11px] bg-white px-1.5 py-0.5 rounded border border-border mr-2">
-                          {ev.email}
+                  <div
+                    className={`flex-1 rounded-md p-3 flex flex-col sm:flex-row sm:items-start justify-between gap-1.5 border ${
+                      isError
+                        ? "border-rose-200 bg-rose-50/50"
+                        : "bg-gray-50/70 border-border/70"
+                    }`}
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {icon}
+                        <span className={`font-semibold ${isError ? "text-rose-900" : "text-foreground"} mr-2`}>
+                          {ev.message}
                         </span>
-                      )}
+                        {ev.email && (
+                          <span className="text-body font-mono text-[11px] bg-white px-1.5 py-0.5 rounded border border-border mr-2">
+                            {ev.email}
+                          </span>
+                        )}
+                      </div>
                       {ev.details && (
-                        <span className="text-muted text-[11px]">
-                          {ev.details}
-                        </span>
+                        isError ? (
+                          <div className="p-2 rounded bg-rose-100/70 text-rose-900 border border-rose-200 font-mono text-[11px] break-all">
+                            {ev.details}
+                          </div>
+                        ) : (
+                          <span className="text-muted text-[11px] block">
+                            {ev.details}
+                          </span>
+                        )
                       )}
                     </div>
                     <span className="text-[11px] text-muted font-mono shrink-0">
@@ -939,6 +1039,25 @@ export default function CampaignDetailPage() {
               </button>
             </div>
 
+            {/* Error Alert Banner if Target Failed */}
+            {((selectedTarget.status || "").toLowerCase().includes("error") ||
+              (selectedTarget.status || "").toLowerCase().includes("gagal") ||
+              targetEvents.some((e) => (e.message || "").toLowerCase().includes("error") || (e.message || "").toLowerCase().includes("gagal"))) && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2.5 text-xs text-rose-800">
+                <AlertTriangle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                <div className="space-y-1 flex-1">
+                  <span className="font-semibold block text-rose-900">Pengiriman Email Gagal (SMTP Delivery Error)</span>
+                  <p className="text-[11px] text-rose-700">
+                    Transporter SMTP mengalami kendala saat mengirimkan email phishing ke target ini:
+                  </p>
+                  <div className="p-2 rounded bg-rose-100/70 text-rose-900 border border-rose-200 font-mono text-[11px] break-all mt-1">
+                    {targetEvents.find((e) => (e.message || "").toLowerCase().includes("error") || (e.message || "").toLowerCase().includes("gagal"))?.details ||
+                      "Koneksi SMTP ditolak, autentikasi gagal, atau alamat penerima ditolak oleh mail server."}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-2.5 bg-gray-50 rounded border border-border">
                 <span className="text-muted block text-[10px] uppercase font-bold">Nama</span>
@@ -956,9 +1075,9 @@ export default function CampaignDetailPage() {
               </div>
               <div className="p-2.5 bg-gray-50 rounded border border-border">
                 <span className="text-muted block text-[10px] uppercase font-bold">Status Saat Ini</span>
-                <span className="font-medium text-foreground">
-                  {selectedTarget.status}
-                </span>
+                <div className="mt-1">
+                  {getTargetStatusBadge(selectedTarget.status, selectedTarget.reported)}
+                </div>
               </div>
               <div className="p-2.5 bg-gray-50 rounded border border-border">
                 <span className="text-muted block text-[10px] uppercase font-bold">Melaporkan Phishing</span>
@@ -978,26 +1097,42 @@ export default function CampaignDetailPage() {
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {targetEvents.map((e) => (
-                    <div
-                      key={e.id}
-                      className="p-2.5 bg-gray-50 border border-border rounded text-xs flex items-center justify-between"
-                    >
-                      <div>
-                        <span className="font-medium text-foreground block">
-                          {e.message}
+                  {targetEvents.map((e) => {
+                    const isEvError = (e.message || "").toLowerCase().includes("error") || (e.message || "").toLowerCase().includes("gagal");
+                    return (
+                      <div
+                        key={e.id}
+                        className={`p-2.5 rounded text-xs flex items-start justify-between gap-2 border ${
+                          isEvError
+                            ? "bg-rose-50/60 border-rose-200"
+                            : "bg-gray-50 border-border"
+                        }`}
+                      >
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            {isEvError && <AlertTriangle size={12} className="text-rose-600 shrink-0" />}
+                            <span className={`font-medium block ${isEvError ? "text-rose-900 font-semibold" : "text-foreground"}`}>
+                              {e.message}
+                            </span>
+                          </div>
+                          {e.details && (
+                            isEvError ? (
+                              <div className="p-1.5 rounded bg-rose-100/80 text-rose-900 border border-rose-200 font-mono text-[11px] break-all">
+                                {e.details}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-muted block">
+                                {e.details}
+                              </span>
+                            )
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted font-mono shrink-0">
+                          {new Date(e.time).toLocaleTimeString("id-ID")}
                         </span>
-                        {e.details && (
-                          <span className="text-[11px] text-muted block">
-                            {e.details}
-                          </span>
-                        )}
                       </div>
-                      <span className="text-[10px] text-muted font-mono shrink-0">
-                        {new Date(e.time).toLocaleTimeString("id-ID")}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

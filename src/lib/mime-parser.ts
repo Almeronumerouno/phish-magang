@@ -323,7 +323,7 @@ export function convertLinksToTemplateUrl(html: string): string {
  */
 export function cleanTemplateUrls(html: string): string {
   if (!html) return "";
-  return html.replace(/https?:\/\/{{\.URL}}/gi, "{{.URL}}");
+  return html.replace(/https?:\/\/{{\s*\.URL\s*}}/gi, "{{.URL}}");
 }
 
 /**
